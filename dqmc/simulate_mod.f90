@@ -75,6 +75,7 @@ module simulate_mod
 
             ! l = 1 imaginary time sweep:
             l = 1
+            print *, "Warmup sweep ", 1, "..."
             call newGup(S, l)
             call newGdn(S, l)
             call sweepslice(S, l)
@@ -92,6 +93,7 @@ module simulate_mod
             enddo
 
             do i = 2, S%nequil
+                print *, "Warmup sweep ", i, "..."
                 call sweep(S)
             enddo
 
@@ -104,12 +106,16 @@ module simulate_mod
 
             integer :: i, j, k
 
-
+            print *, S%ntotal, "total sweeps"
+            print *, S%nequil, "warmup sweeps"
+            print *, (S%nskip + 1) * S%binsize, "sweeps per bin (approximately)"
+            print *, S%nbin, "bins"
             ! Warmup
             call warmup(S)
 
 
             ! First measurement sweep right after warmup
+            print *, "Bin ", 1, "measured sweep ", 1, "..."
             call sweep(S)
             ! call measure
             
@@ -118,9 +124,11 @@ module simulate_mod
             do i = 2, S%binsize
                 do j = 1, S%nskip
                     ! Nonmeasured sweeps
+                    print *, "Bin ", 1, "nonmeasured sweep ", j, "..."
                     call sweep(S)
                 enddo
                 ! Measurement sweep
+                print *, "Bin ", 1, "measured sweep...", i, "..."
                 call sweep(S)
                 ! call measure
             enddo
@@ -131,9 +139,11 @@ module simulate_mod
                 do i = 1, S%binsize
                     do j = 1, S%nskip
                         ! Nonmeasured sweeps
+                        print *, "Bin ", k, "nonmeasured sweep ", j, "..."
                         call sweep(S)
                     enddo
                     ! Measurement sweep
+                    print *, "Bin ", k, "measured sweep ", i, "..."
                     call sweep(S)
                     ! call measure
                 enddo

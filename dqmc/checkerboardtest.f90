@@ -14,7 +14,7 @@ program checkerboardtest
     real(dp), allocatable :: C(:, :)
 
 
-    call read_ckb(ckb, filename, iounit)
+    call read_ckb_dtau(ckb, 0.125_dp, filename, iounit)
     n = 16
 
     allocate(A(n, n))

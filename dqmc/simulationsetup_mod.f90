@@ -50,6 +50,7 @@ module simulationsetup_mod
         ! Workspaces:
         real(dp), allocatable :: ckbwork(:)     ! Checkerboard work vector (N)
         real(dp), allocatable :: flipwork(:, :) ! Green's function fast flip update work array (N x 2; holds 2 vectors)
+        integer               :: ckbiounit
         
         ! Workspaces for carrying out the ASvQRD algorithm (stable chain multiplication)
         real(dp), allocatable :: qrdB   (:, :) ! B matrix for ASvQRD (N x N)
@@ -138,6 +139,11 @@ module simulationsetup_mod
         allocate(S%invP(N))
 
         allocate(S%h(N, L))
+
+        allocate(S%Gup(N, N))
+        allocate(S%Gdn(N, N))
+
+        call read_ckb_dtau(S%ckb, dtau, ckbfilename, S%ckbiounit)
 
 
     endsubroutine setup_simulation

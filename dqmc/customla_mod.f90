@@ -121,11 +121,18 @@ module customla_mod
             ! call dlarscl2(n, n, D, A, 1)
 
             ! SECOND BEST
-            ! No BLAS:
+            ! Alternative BLAS:
             integer :: i
             do i = 1, n
-                A(i, :) = A(i, :) / D(i)
+                call dscal(n, 1.0_dp / D(i), A(i, 1), n)
             enddo
+
+            ! THIRD BEST
+            ! No BLAS:
+            ! integer :: i
+            ! do i = 1, n
+            !     A(i, :) = A(i, :) / D(i)
+            ! enddo
             
             
         endsubroutine left_diaginvmult

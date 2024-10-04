@@ -1,5 +1,6 @@
 fc := gfortran
-fc_flags := -Wextra -Wall -pedantic -g
+#fc_flags := -Wextra -Wall -pedantic -g -fbounds-check -pg
+fc_flags := -Ofast
 
 tests = customlatest.out checkerboardtest.out checkerboardtest.out
 

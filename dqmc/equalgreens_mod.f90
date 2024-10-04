@@ -52,14 +52,14 @@ module equalgreens_mod
             x = S%deltaup / S%Rup
 
             ! Vector G(:, i) - 1
-            call dcopy(S%N, S%Gup(1, i), 1, S%flipwork(1, 1))
+            call dcopy(S%N, S%Gup(1, i), 1, S%flipwork(1, 1), 1)
             S%flipwork(i, 1) = S%flipwork(i, 1) - 1.0_dp
 
             ! Vector G(i, :)
-            call dcopy(S%N, S%Gup(i, 1), S%N, S%flipwork(1, 2))
+            call dcopy(S%N, S%Gup(i, 1), S%N, S%flipwork(1, 2), 1)
 
             ! Outer product
-            call dger(S%N, S%N, x, S%flipwork(1, 1), 1, S%flipwork(1, 2), S%Gup, S%N)
+            call dger(S%N, S%N, x, S%flipwork(1, 1), 1, S%flipwork(1, 2), 1, S%Gup, S%N)
 
 
             ! No BLAS:
@@ -126,14 +126,14 @@ module equalgreens_mod
             x = S%deltadn / S%Rdn
 
             ! Vector G(:, i) - 1
-            call dcopy(S%N, S%Gdn(1, i), 1, S%flipwork(1, 1))
+            call dcopy(S%N, S%Gdn(1, i), 1, S%flipwork(1, 1), 1)
             S%flipwork(i, 1) = S%flipwork(i, 1) - 1.0_dp
 
             ! Vector G(i, :)
-            call dcopy(S%N, S%Gdn(i, 1), S%N, S%flipwork(1, 2))
+            call dcopy(S%N, S%Gdn(i, 1), S%N, S%flipwork(1, 2), 1)
 
             ! Outer product
-            call dger(S%N, S%N, x, S%flipwork(1, 1), 1, S%flipwork(1, 2), S%Gdn, S%N)
+            call dger(S%N, S%N, x, S%flipwork(1, 1), 1, S%flipwork(1, 2), 1, S%Gdn, S%N)
 
 
             ! No BLAS:

@@ -169,7 +169,7 @@ module bmult_mod
             integer         , intent(in)    :: sigma
 
             ! A = id
-            call dlaset('A', S%N, 0.0_dp, 1.0_dp, A, S%N)
+            call dlaset('A', S%N, S%N, 0.0_dp, 1.0_dp, A, S%N)
             ! A = A * B(l)
             call right_Bmult(S, A, l, sigma)
 
