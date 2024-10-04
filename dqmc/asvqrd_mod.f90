@@ -20,7 +20,8 @@ module asvqrd_mod
             ! by: Zhaojun Bai, Che-Run Lee, Ren-Cang Li, Shufang Xu
             ! doi:10.1016/j.laa.2010.06.023
             !
-            ! for a precise description of the chain multiplication algorithm.
+            ! for a precise description of the stable chain multiplication algorithm.
+            !
             ! This subroutine implements lines 4 - 6 of the ASvQRD algorithm,
             ! which is a single iteration of the main loop of that algorithm. 
             !
@@ -34,7 +35,7 @@ module asvqrd_mod
             ! To save on memory and because of BLAS/LAPACK stucture, this iteration is
             ! carried out slightly differently than as stated in the paper.
             !
-            ! Since (equation 2.5) the multiplication factors:
+            ! Since (equation 2.5 of the paper) the chain multiplication factors like:
             !
             ! B(1) * ... * B(L) = Q(L) * D(L) * (T(L) * ... * T(1))
             !
@@ -55,7 +56,8 @@ module asvqrd_mod
             ! A = Q * R * inv(P)
             !
             ! So wherever there is multiplication by a permutation matrix P in ASvQRD, this subroutine will
-            ! perform multiplication by the inverse of the calculated permutation matrix.
+            ! perform multiplication by the inverse of the calculated permutation matrix (since 
+            ! the ASvQRD algorithm has the QRP factorisation written as A = Q * R * P).
             !
             ! The LAPACK QRP subroutine dgeqp3 most notably acts as follows:
             !
@@ -267,8 +269,7 @@ module asvqrd_mod
 
             ! TODO:
             ! Figure out if there is a better way to manage memory
-            ! See if more BLAS/LAPACK routines could be called/if they are better for multiplication (eg, 
-            ! maybe use dlarscl2 for the update A = inv(D) * A)
+            ! See if more BLAS/LAPACK routines could be called/if they are better for multiplication
 
             ! call dormqr(B, Q, tau)     (B = B * Q(j-1))
             call dormqr('R', 'N', N, N, N, Q, N, tau, B, N, work, lwork, info)
@@ -294,9 +295,7 @@ module asvqrd_mod
             call left_diaginvmult(R, D, N)
 
             ! T = R * T
-            call dlacpy('a', N, N, T, N, Q, N) ! Q = T, no A = B * A general matrix update subroutine in BLAS, copying T to Q to then use dgemm
-            call dgemm('n', 'n', N, N, N, 1.0_dp, R, N, Q, N, 0.0_dp, T, N) ! T = R * Q
-            ! It would be nice to find a way around this extra copying
+            call left_matmul(T, R, N, Q) ! Should try to get rid of calling this subroutine
 
 
         endsubroutine chainiteration

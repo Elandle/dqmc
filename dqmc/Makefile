@@ -1,7 +1,7 @@
 fc := gfortran
-fc_flags := -Wextra -Wall -pedantic
+fc_flags := -Wextra -Wall -pedantic -g
 
-tests = customlatest.out checkerboardtest.out
+tests = customlatest.out checkerboardtest.out checkerboardtest.out
 
 all: main.out $(tests)
 
@@ -10,17 +10,19 @@ main.out: main.f90 numbertypes.o simulate_mod.o
 
 
 customlatest.out: customlatest.f90 customlatests_mod.o customla_mod.o numbertypes.o
-	$(fc) $(fc_flags) customlatest.f90 customlatests_mod.o customla_mod.o numbertypes.o -llapack -lblas -o customlatest.out
+	$(fc) $(fc_flags) customlatest.f90 customlatests_mod.o customla_mod.o numbertypes.o convenientla_mod.o -llapack -lblas -o customlatest.out
 
 checkerboardtest.out: checkerboardtest.f90 customla_mod.o checkerboard_mod.o checkerboardtests_mod.o
+	$(fc) $(fc_flags) checkerboardtest.f90 numbertypes.o checkerboard_mod.o checkerboardtests_mod.o customla_mod.o convenientla_mod.o -llapack -lblas -o checkerboardtest.out
 
-
-customlatests_mod.o: customlatests_mod.f90 customla_mod.o numbertypes.o
+customlatests_mod.o: customlatests_mod.f90 customla_mod.o numbertypes.o convenientla_mod.o
 	$(fc) $(fc_flags) -c customlatests_mod.f90
 
-checkerboardtests_mod.o: checkerboardtests_mod.f90 numbertypes.o customla_mod.o checkerboard_mod.o
+checkerboardtests_mod.o: checkerboardtests_mod.f90 numbertypes.o customla_mod.o checkerboard_mod.o convenientla_mod.o
 	$(fc) $(fc_flags) -c checkerboardtests_mod.f90
 
+convenientla_mod.o: convenientla_mod.f90 numbertypes.mod customla_mod.mod
+	$(fc) $(fc_flags) -c convenientla_mod.f90
 
 customla_mod.o: customla_mod.f90 numbertypes.o
 	$(fc) $(fc_flags) -c customla_mod.f90
@@ -54,6 +56,8 @@ simulationsetup_mod.o: simulationsetup_mod.f90 numbertypes.o checkerboard_mod.o
 
 statistics_mod.o: statistics_mod.f90 numbertypes.o
 	$(fc) $(fc_flags) -c statistics_mod.f90
+
+
 
 clean:
 	rm -rf *.o *.mod *.out

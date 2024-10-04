@@ -58,7 +58,7 @@ module simulationsetup_mod
         real(dp), allocatable :: qrdR   (:, :) ! R matrix for ASvQRD (N x N)
         real(dp), allocatable :: qrdD   (:)    ! D vector for ASvQRD (N)
         real(dp), allocatable :: qrdF   (:)    ! F vector for ASvQRD (N)
-        real(dp), allocatable :: qrdT   (:)    ! T matrix for ASvQRD (N x N)
+        real(dp), allocatable :: qrdT   (:, :)    ! T matrix for ASvQRD (N x N)
         real(dp), allocatable :: qrdwork(:)    ! work vector for ASvQRD (qrdlwork)
         integer , allocatable :: qrdP   (:)    ! P vector for ASvQRD (N)
         integer , allocatable :: qrdI   (:)    ! I vector for ASvQRD (N)
@@ -80,10 +80,11 @@ module simulationsetup_mod
 
     contains
 
-    subroutine setup_simulation(S, N, nstab, nbin, nmeassweep, nskip, nequil, &
+    subroutine setup_simulation(S, N, L, nstab, nbin, nmeassweep, nskip, nequil, &
         dtau, temp, U, mu, ckbfilename)
         type(Simulation)  , intent(inout) :: S
         integer           , intent(in)    :: N
+        integer           , intent(in)    :: L
         integer           , intent(in)    :: nstab
         integer           , intent(in)    :: nbin
         integer           , intent(in)    :: nmeassweep
@@ -97,6 +98,8 @@ module simulationsetup_mod
 
 
         S%N          = N
+        S%L          = L
+
         S%nstab      = nstab
         S%nbin       = nbin
         S%nmeassweep = nmeassweep
@@ -133,6 +136,8 @@ module simulationsetup_mod
         S%invlwork = 5 * N
         allocate(S%invwork(S%invlwork))
         allocate(S%invP(N))
+
+        allocate(S%h(N, L))
 
 
     endsubroutine setup_simulation

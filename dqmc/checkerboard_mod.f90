@@ -1,8 +1,99 @@
 module checkerboard_mod
     use numbertypes
     implicit none
-
-
+    !
+    ! Outline of the checkerboard method ---------
+    !
+    ! Main idea:
+    !
+    ! To compute updates A = exp(T) * A or A = A * exp(T)
+    ! using fast (non-dense) matrix-matrix multiplication approximately
+    ! using the fact that T is sparse.
+    !
+    ! Theory:
+    !
+    ! To do this, T is first split:
+    !
+    ! T = diag(T) + C(1) + ... + C(n)
+    !
+    ! Then exp(T) is approximated using the Suzuki-Trotter approximation:
+    !
+    ! exp(T) ~ exp(diag(T)) * exp(C(1)) * ... * exp(C(n))
+    !
+    ! By choosing each C(i) to be strictly sparse, multiplications by
+    ! exp(C(i)) can be done fast (left multiplication: row updates, right
+    ! multiplication: column updates).
+    !
+    ! The Suzuki-Trotter approximation gets worse the higher n is.
+    ! A minimal n can be found and used by edge-colouring T.
+    ! 
+    ! A symmetric pair of T is a pair (a, b) along with a pair of indices
+    ! i, j, such that:
+    !
+    ! T(i, j) = a
+    ! T(j, i) = b
+    !       i < j (a is above the main diagonal and b is below)
+    ! (a, b) =/= (0, 0) (one can still be 0)
+    !
+    ! If A is a matrix with all entries 0 except for:
+    !
+    ! A(i, j) = a
+    ! A(j, i) = b 
+    !
+    ! then it can be shown that multiplication by exp(A) amounts to performing either
+    ! two row updates or two column updates. For a symmetric pair (a, b), call the matrix
+    ! A formed this way the matrix of the symmetric pair (a, b).
+    !
+    ! Assuming T has no diagonal (if it did, then approximate exp(T) ~ exp(diag(T)) * exp(offdiag(T)))
+    ! form a graph from T in the following way.
+    !
+    ! Vertices: the indices 1, ..., n (T is n x n)
+    ! Edges   : i and j are connected by an edge if they form the indices of a symmetric pair of T
+    !
+    ! Edge colour this graph. This means for each edge (i, j), give it a colour so that no two incident
+    ! edges to a vertex share the same colour. The lesser the amount of colours used, the better
+    ! the approximation the checkerboard method will produce.
+    !
+    ! After edge colouring, each edge (i, j) corresponds to a colour (in other words, label).
+    ! Each edge (i, j) corresponds to a symmetric pair of T.
+    ! For each colour k, take all of these symmetric pairs (that correspond to a coloured edge), and
+    ! form the matrix:
+    !
+    ! C(k) = A(sympair(1)) + ... A(sympair(m))
+    !
+    ! In other words, start with a matrix C(k) of all 0's and fill in its entries according to the rules
+    ! of making a symmetric pair matrix for each symmetric pair with colour k.
+    !
+    ! It can be shown that multiplication by exp(C(k)) is the same as multiplication by the exponential
+    ! of each symmetric pair's matrix, which is just 2 row or column updates each.
+    ! In other words, to multiply by exp(C(k)), iterate through multiplication by exp(A(l)), where A(l)
+    ! is the matrix of the lth symmetric pair (in colour k).
+    !
+    ! For best results, T should be as sparse as possible, and the largest magnitude entry
+    ! of T should be less than 1 (lower is better).
+    !
+    ! Implementation:
+    !
+    ! The base data structure is a symmetric pair, which holds the information for multiplying by
+    ! a symmetric matrix (done by the right_symmult and left_symmult subroutines). construct_sympair
+    ! sets this information up using the pair (a, b) and their indices (i, j).
+    !
+    ! sympair's are stored in an array in the ckbcolour datatype, which should store all 
+    ! sympair's corresponding to a single colour. The subroutines left_colourmult and right_colourmult
+    ! handle multiplication by all sympair's in a single colour by iterating through their multiplication.
+    !
+    ! The checkerboard datatype holds an array of colours (corresponding to the matrices a matrix is split into)
+    ! and handles approximate multiplication (left_ckbmult and right_ckbmult) of a matrix exponential by the
+    ! checkerboard method.
+    !
+    ! Note: this module is coded assuming the matrix T being exponentiated by has no diagonal.
+    ! This is what comes up in DQMC, and if diagonals are explicitly needed, they can either be:
+    !
+    ! first extracted D = diag(T), T updated T = offdiag(T), checkerboard applied to the updated T,
+    ! then multiplication by the diagonal matrix D implemented
+    !
+    ! or this extraction process can easily be added to the checkerboard method code
+    !
     type :: checkerboard
         !
         ! Stores ckbcolour's for checkerboard multiplication by iterating through
@@ -411,7 +502,65 @@ module checkerboard_mod
             enddo
 
 
-            endsubroutine read_ckb
+        endsubroutine read_ckb
+
+
+        subroutine read_ckb_dtau(ckb, dtau, filename, iounit)
+            !
+            ! The same as read_ckb, but also takes in a dtau argument
+            ! to scale each entry by.
+            !
+            ! In other words, if T is the matrix decomposed in filename
+            ! and read_ckb would store information for approximating multiplication by:
+            !
+            ! exp(T)
+            !
+            ! then this subroutine would store information for approximating
+            ! multiplication by:
+            !
+            ! exp(dtau * T)
+            !
+            type(checkerboard), intent(out) :: ckb
+            real(dp)          , intent(in)  :: dtau
+            character(len=*)  , intent(in)  :: filename
+            integer           , intent(out) :: iounit
+
+            integer  :: k, l
+            integer  :: n_colors
+            integer  :: n_col
+            integer  :: i, j
+            real(dp) :: ij, ji
+            character(len=100) :: str
+
+            ! TODO:
+            ! Implement input error checking
+            ! Get better at strings and rewrite (very brute force and basic here)
+
+            ! Open the input file and assign it a unit  (should have no unit beforehand)
+            open(file=filename, newunit=iounit)
+
+            ! Read line 1: the number of colors
+            read(iounit, "(a100)") str
+            read(str, *) n_colors
+            call initialize_checkerboard(ckb, n_colors)
+        
+            ! Iterate reading in the different colors
+            do k = 1, n_colors
+                read(iounit, "(a100)") str ! This should be a blank line
+                ! After each blank is the number of symmetric pairs in a color
+                read(iounit, "(a100)") str
+                read(str, *) n_col
+                call initialize_ckbcolour(ckb%colours(k), n_col)
+                ! Iterate through symmetric pairs
+                do l = 1, n_col
+                    read(iounit, "(a100)") str
+                    read(str, *) i, j, ij, ji
+                    call construct_sympair(ckb%colours(k)%pairs(l), i, j, dtau * ij, dtau * ji)
+                enddo
+            enddo
+
+
+        endsubroutine read_ckb_dtau
 
 
 endmodule checkerboard_mod

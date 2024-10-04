@@ -68,9 +68,30 @@ module simulate_mod
         subroutine warmup(S)
             type(Simulation), intent(inout) :: S
 
-            integer :: i
+            integer :: i, l
 
-            do i = 1, S%nequil
+            ! Very first sweep is slightly different since Green's functions
+            ! have not been computed yet
+
+            ! l = 1 imaginary time sweep:
+            l = 1
+            call newGup(S, l)
+            call newGdn(S, l)
+            call sweepslice(S, l)
+
+            do l = 2, S%L
+                ! Sweep through imaginary time
+
+                ! Update Green's functions for this time slice
+                call uptimeupdate(S, l)
+                call dntimeupdate(S, l)
+
+                ! Sweep through sites of the lattice at slice l
+                call sweepslice(S, l)
+                
+            enddo
+
+            do i = 2, S%nequil
                 call sweep(S)
             enddo
 

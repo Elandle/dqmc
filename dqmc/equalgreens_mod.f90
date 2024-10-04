@@ -307,14 +307,14 @@ module equalgreens_mod
 
             ! G = inv(id + qrdT)
             if (mod(S%L, 2) .eq. 0) then                                                                ! Q information stored in Q
-                call dorgr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! Q = full Q
+                call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! Q = full Q
                 call right_diaginvmult(S%qrdQ, S%qrdD, S%N)                                                 ! Q = Q * inv(Db), no transpose
                 call left_diagmult(S%qrdT, S%qrdF, S%N)                                                     ! T = Ds * T
                 call add_trans(S%qrdT, S%qrdQ, S%N)                                                         ! T = T + trans(Q)
                 call invert(S%qrdT, S%N, S%invP, S%invwork, S%invlwork, S%info)                             ! T = inv(T)
                 call dgemm('n', 't', S%N, S%N, S%N, 1.0_dp, S%qrdT, S%N, S%qrdQ, S%N, 0.0_dp, S%Gup, S%N)   ! G = T * trans(Q)
             else                                                                                        ! Q information stored in B
-                call dorgr(S%N, S%N, S%N, S%qrdB, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! B = full Q
+                call dorgqr(S%N, S%N, S%N, S%qrdB, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! B = full Q
                 call right_diaginvmult(S%qrdB, S%qrdD, S%N)                                                 ! B = B * inv(Db), no transpose
                 call left_diagmult(S%qrdT, S%qrdF, S%N)                                                     ! T = Ds * T
                 call add_trans(S%qrdT, S%qrdB, S%N)                                                         ! T = T + trans(B)
@@ -360,14 +360,14 @@ module equalgreens_mod
 
             ! G = inv(id + qrdT)
             if (mod(S%L, 2) .eq. 0) then                                                                ! Q information stored in Q
-                call dorgr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! Q = full Q
+                call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! Q = full Q
                 call right_diaginvmult(S%qrdQ, S%qrdD, S%N)                                                 ! Q = Q * inv(Db), no transpose
                 call left_diagmult(S%qrdT, S%qrdF, S%N)                                                     ! T = Ds * T
                 call add_trans(S%qrdT, S%qrdQ, S%N)                                                         ! T = T + trans(Q)
                 call invert(S%qrdT, S%N, S%invP, S%invwork, S%invlwork, S%info)                             ! T = inv(T)
                 call dgemm('n', 't', S%N, S%N, S%N, 1.0_dp, S%qrdT, S%N, S%qrdQ, S%N, 0.0_dp, S%Gdn, S%N)   ! G = T * trans(Q)
             else                                                                                        ! Q information stored in B
-                call dorgr(S%N, S%N, S%N, S%qrdB, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! B = full Q
+                call dorgqr(S%N, S%N, S%N, S%qrdB, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)             ! B = full Q
                 call right_diaginvmult(S%qrdB, S%qrdD, S%N)                                                 ! B = B * inv(Db), no transpose
                 call left_diagmult(S%qrdT, S%qrdF, S%N)                                                     ! T = Ds * T
                 call add_trans(S%qrdT, S%qrdB, S%N)                                                         ! T = T + trans(B)
@@ -390,7 +390,7 @@ module equalgreens_mod
             ! For implementation details, see the subroutine chainiteration
             !
             type(Simulation), intent(inout) :: S
-            integer         , intent(in) :: l
+            integer         , intent(in)    :: l
 
             integer :: j
 
@@ -427,7 +427,7 @@ module equalgreens_mod
             ! For implementation details, see the subroutine chainiteration
             !
             type(Simulation), intent(inout) :: S
-            integer         , intent(in) :: l
+            integer         , intent(in)    :: l
 
             integer :: j
 

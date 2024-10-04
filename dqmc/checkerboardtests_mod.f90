@@ -1,60 +1,11 @@
 module checkerboardtests_mod
     use numbertypes
     use customla_mod
+    use convenientla_mod
     use checkerboard_mod
     implicit none
 
     contains
-
-
-        subroutine right_matrixmultiply(A, B, n)
-            !
-            ! Updates:
-            !
-            ! A = A * B
-            !
-            ! where A and B are n x n matrices
-            !
-            real(dp), intent(inout) :: A
-            real(dp), intent(in)    :: B
-            integer , intent(in)    :: n
-
-            real(dp), allocatable :: C(:, :)
-
-            allocate(C(n, n))
-
-            ! C = A
-            call copy_matrix(A, C, n)
-            ! A = C * B
-            call dgemm('n', 'n', n, n, n, 1.0_dp, C, n, B, n, 0.0_dp, A, n)
-
-
-        endsubroutine
-
-
-        subroutine left_matrixmultiply(A, B, n)
-            !
-            ! Updates:
-            !
-            ! A = B * A
-            !
-            ! where A and B are n x n matrices
-            !
-            real(dp), intent(inout) :: A
-            real(dp), intent(in)    :: B
-            integer , intent(in)    :: n
-
-            real(dp), allocatable :: C(:, :)
-
-            allocate(C(n, n))
-
-            ! C = A
-            call copy_matrix(A, C, n)
-            ! A = B * C
-            call dgemm('n', 'n', n, n, n, 1.0_dp, B, n, C, n, 0.0_dp, A, n)
-
-
-        endsubroutine
 
 
         subroutine make_explicitcolor(color, A, n)
@@ -76,6 +27,10 @@ module checkerboardtests_mod
 
             ! A = 0
             call zero_matrix(A, n)
+
+            do k = 1, n
+                A(k, k) = 1.0_dp
+            enddo
 
             do k = 1, color%n
                 i  = color%pairs(k)%i
@@ -122,7 +77,6 @@ module checkerboardtests_mod
 
             ! A = id
             call make_identity(A, n)
-
             do i = 1, ckb%n
                 ! B = ith color matrix exponential
                 call make_explicitcolor(ckb%colours(i), B, n)

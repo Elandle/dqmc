@@ -1,6 +1,7 @@
 module customlatests_mod
     use numbertypes
     use customla_mod
+    use convenientla_mod
 
     ! Contains procedures for testing the procedures of customla_mod
     ! Since the purpose is testing, the procedures here were not designed for
@@ -8,41 +9,11 @@ module customlatests_mod
 
     contains
 
-        function twonorm(A) result(norm)
-            !
-            ! Returns the 2 norm of the matrix A
-            !
-            real(dp), intent(in) :: A(:, :)
-
-            real(dp), allocatable :: B(:, :)
-            real(dp), allocatable :: S(:)
-            real(dp), allocatable :: work(:)
-            integer               :: m
-            integer               :: n
-            integer               :: lwork
-            integer               :: info
-            real(dp)              :: norm
-            
-            m = size(A, 1)
-            n = size(A, 2)
-            lwork = 5 * (3 * min(m, n) + max(m, n) + 5 * min(m, n))
-
-            allocate(B(m, n))
-            allocate(S(min(m, n)))
-            allocate(work(lwork))
-
-            call dlacpy('A', m, n, A, m, B, m)
-            call dgesvd('N', 'N', m, n, B, m, S, work, lwork, work, lwork, work, lwork, info)
-
-            norm = S(1)
-
-            
-        endfunction twonorm
-
 
         subroutine test_twonorm()
             real(dp) :: A(2, 2)
-            real(dp) :: norm, exact
+            real(dp) :: norm
+            real(dp) :: exact
 
             A(1, 1) = 1
             A(2, 1) = 2

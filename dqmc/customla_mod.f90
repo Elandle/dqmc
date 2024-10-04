@@ -383,7 +383,6 @@ module customla_mod
                 call daxpy(n, 1.0_dp, B(i, 1), n, A(1, i), 1)
             enddo
 
-
             ! No BLAS:
             ! do i = 1, n
             !     A(:, i) = A(:, i) + B(i, :)
@@ -391,6 +390,63 @@ module customla_mod
 
 
         endsubroutine add_trans
+
+
+        subroutine add_matrix(A, B, n)
+            !
+            ! Updates:
+            !
+            ! A = A + B
+            !
+            ! where A and B are n x n matrices
+            !
+            real(dp), intent(inout) :: A(n, n)
+            real(dp), intent(in)    :: B(n, n)
+            integer , intent(in)    :: n
+
+            ! BLAS:
+            call daxpy(n*n, 1.0_dp, B, 1, A, 1)
+
+            ! No BLAS:
+            ! integer :: i, j
+            ! do j = 1, n
+            !     do i = 1, n
+            !         A(i, j) = A(i, j) + B(i, j)
+            !     enddo
+            ! enddo
+
+
+        endsubroutine add_matrix
+
+        subroutine left_matmul(A, B, n, work)
+            !
+            ! Updates:
+            !
+            ! A = B * A
+            !
+            ! where A and B are n x n matrices.
+            !
+            ! Uses a supplied work matrix to hold a temporary copy of A (since
+            ! there is no A = B * A general matrix update routine in BLAS/LAPACK).
+            !
+            ! This subroutine should be avoided at all costs, but it might be
+            ! necessary to use at times.
+            !
+            real(dp), intent(inout) :: A(n, n)
+            real(dp), intent(in)    :: B(n, n)
+            integer , intent(in)    :: n
+            real(dp), intent(in)    :: work(n, n)
+            
+            ! work = A
+            call dlacpy('a', N, N, A, N, work, N)
+            ! A = B * work
+            call dgemm('n', 'n', N, N, N, 1.0_dp, B, N, work, N, 0.0_dp, A, N)
+
+
+        endsubroutine left_matmul
+
+
+        
 
 
 endmodule customla_mod
