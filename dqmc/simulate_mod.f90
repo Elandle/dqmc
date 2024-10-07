@@ -3,6 +3,8 @@ module simulate_mod
     use simulationsetup_mod
     use equalgreens_mod
     use metropolisratios_mod
+    use measurements_mod
+    use statistics_mod
     implicit none
 
 
@@ -40,7 +42,10 @@ module simulate_mod
                 ! Calculating the acceptance probability R of that flip
                 call greens_Rup(S, i, l)
                 call greens_Rdn(S, i, l)
-                S%R = S%Rup * S%Rdn
+                S%upsgn = sgn(S%Rup)
+                S%dnsgn = sgn(S%Rdn)
+                S%sgn   = S%upsgn * S%dnsgn
+                S%R     = S%sgn * S%Rup * S%Rdn
 
                 ! Generating a random number uniformly between 0 and 1
                 call random_number(S%rand)
@@ -117,7 +122,7 @@ module simulate_mod
             ! First measurement sweep right after warmup
             print *, "Bin ", 1, "measured sweep ", 1, "..."
             call sweep(S)
-            ! call measure
+            call measure(S, 1)
             
 
             ! Separate first bin loop since a measurement sweep has already been done
@@ -130,8 +135,9 @@ module simulate_mod
                 ! Measurement sweep
                 print *, "Bin ", 1, "measured sweep...", i, "..."
                 call sweep(S)
-                ! call measure
+                call measure(S, i)
             enddo
+            call avgbin(S, 1)
 
 
             ! Loop over bins
@@ -145,20 +151,37 @@ module simulate_mod
                     ! Measurement sweep
                     print *, "Bin ", k, "measured sweep ", i, "..."
                     call sweep(S)
-                    ! call measure
+                    call measure(S, i)
                 enddo
+                call avgbin(S, k)
             enddo
             
             
             ! Do statistics
-            ! call statistics
+            call dostatistics(S)
 
 
             ! Output results
             ! call output
+            print *, "Average sign = ", S%sgnavg, "+-", S%sgnerr
+            print *, "Average upden = ", S%updenavg, "+-", S%updenerr
+            print *, "Average dnden = ", S%dndenavg, "+-", S%dndenerr
 
 
         endsubroutine simulate
+
+
+        integer function sgn(x)
+            real(dp), intent(in) :: x
+
+            if (x .ge. 0.0_dp) then
+                sgn = 1
+            else
+                sgn = -1
+            endif
+
+
+        endfunction sgn
 
 
 

@@ -44,6 +44,9 @@ module simulationsetup_mod
         integer , allocatable :: h(:, :)   ! Hubbard Stratonovich field (N x L)
         real(dp), allocatable :: Gup(:, :) ! Up spin equal time Green's function (N X N)
         real(dp), allocatable :: Gdn(:, :) ! Dn spin equal time Green's funciton (N x N)
+        real(dp)              :: upsgn
+        real(dp)              :: dnsgn
+        real(dp)              :: sgn
 
         integer               :: info      ! info argument for LAPACK
         
@@ -69,6 +72,21 @@ module simulationsetup_mod
         real(dp), allocatable :: invwork(:)    ! work vector for inverting matrices (lwork)
         integer , allocatable :: invP   (:)    ! P vector for inverting matrices (N)
         integer               :: invlwork      ! length of invwork (at least N)
+
+        integer , allocatable :: sgnbin(:)     ! (binsize)
+        real(dp), allocatable :: sgnbinavgs(:) ! (nbin)
+        real(dp)              :: sgnavg
+        real(dp)              :: sgnerr
+
+        real(dp), allocatable :: updenbin(:)
+        real(dp), allocatable :: updenbinavgs(:)
+        real(dp)              :: updenavg
+        real(dp)              :: updenerr
+
+        real(dp), allocatable :: dndenbin(:)
+        real(dp), allocatable :: dndenbinavgs(:)
+        real(dp)              :: dndenavg
+        real(dp)              :: dndenerr
 
 
         ! TODO:
@@ -142,6 +160,16 @@ module simulationsetup_mod
 
         allocate(S%Gup(N, N))
         allocate(S%Gdn(N, N))
+
+        allocate(S%sgnbin(S%binsize))
+        allocate(S%sgnbinavgs(nbin))
+
+        allocate(S%updenbin(S%binsize))
+        allocate(S%updenbinavgs(nbin))
+
+        allocate(S%dndenbin(S%binsize))
+        allocate(S%dndenbinavgs(nbin))
+
 
         call read_ckb_dtau(S%ckb, dtau, ckbfilename, S%ckbiounit)
 

@@ -6,7 +6,7 @@ program checkerboardtest
     implicit none
 
     type(checkerboard)    :: ckb
-    character(len=100)    :: filename = "ckb.txt"
+    character(len=100)    :: filename = "squareckb.txt"
     integer               :: iounit
     integer               :: n
     real(dp), allocatable :: A(:, :)

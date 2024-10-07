@@ -7,7 +7,7 @@ tests = customlatest.out checkerboardtest.out checkerboardtest.out
 all: main.out $(tests)
 
 main.out: main.f90 numbertypes.o simulate_mod.o
-	$(fc) $(fc_flags) main.f90 numbertypes.o simulate_mod.o equalgreens_mod.o customla_mod.o asvqrd_mod.o checkerboard_mod.o metropolisratios_mod.o bmult_mod.o simulationsetup_mod.o -llapack -lblas -o main.out
+	$(fc) $(fc_flags) main.f90 numbertypes.o simulate_mod.o equalgreens_mod.o customla_mod.o asvqrd_mod.o checkerboard_mod.o metropolisratios_mod.o bmult_mod.o simulationsetup_mod.o measurements_mod.o statistics_mod.o -llapack -lblas -o main.out
 
 
 customlatest.out: customlatest.f90 customlatests_mod.o customla_mod.o numbertypes.o
@@ -49,8 +49,14 @@ measurements_mod.o: measurements_mod.f90 numbertypes.o
 metropolisratios_mod.o: metropolisratios_mod.f90 numbertypes.o simulationsetup_mod.o
 	$(fc) $(fc_flags) -c metropolisratios_mod.f90
 
-simulate_mod.o: simulate_mod.f90 numbertypes.o simulationsetup_mod.o equalgreens_mod.o metropolisratios_mod.o
+simulate_mod.o: simulate_mod.f90 numbertypes.o simulationsetup_mod.o equalgreens_mod.o metropolisratios_mod.o measurements_mod.o statistics_mod.o
 	$(fc) $(fc_flags) -c simulate_mod.f90
+
+measurements_mod.o: measurements_mod.f90 numbertypes.o simulationsetup_mod.o statistics_mod.o
+	$(fc) $(fc_flags) -c measurements_mod.f90
+
+statistics_mod.o: statistics_mod.f90 numbertypes.o
+	$(fc) $(fc_flags) -c statistics_mod.f90
 
 simulationsetup_mod.o: simulationsetup_mod.f90 numbertypes.o checkerboard_mod.o
 	$(fc) $(fc_flags) -c simulationsetup_mod.f90

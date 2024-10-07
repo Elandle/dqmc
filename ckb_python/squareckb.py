@@ -9,8 +9,8 @@ import ckb
 # n = nx * ny total sites
 # tx hopping in the horizontal direction, and ty hopping in the vertical direction
 
-nx = 10
-ny = 10
+nx = 4
+ny = 4
 
 n = nx * ny
 
