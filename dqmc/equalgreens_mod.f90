@@ -395,7 +395,7 @@ module equalgreens_mod
             integer :: j
 
             ! S%qrdB = B(l)
-            call make_B(S, S%qrdB, l, 1)
+            call make_B(S, S%qrdB, getj(1, S%L, l), 1)
 
             ! j = 1 iteration
             call firstchainiteration(S%qrdB, S%qrdtau, S%qrdR, S%qrdD, S%qrdT, S%qrdI, S%qrdP, S%qrdwork, S%qrdlwork, S%info, S%N)
@@ -432,7 +432,7 @@ module equalgreens_mod
             integer :: j
 
             ! S%qrdB = B(l)
-            call make_B(S, S%qrdB, l, -1)
+            call make_B(S, S%qrdB, getj(1, S%L, l), -1)
 
             ! j = 1 iteration
             call firstchainiteration(S%qrdB, S%qrdtau, S%qrdR, S%qrdD, S%qrdT, S%qrdI, S%qrdP, S%qrdwork, S%qrdlwork, S%info, S%N)

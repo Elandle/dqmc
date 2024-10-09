@@ -63,8 +63,8 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            call left_diagmult(A, sigma * S%aldmu * S%h(:, l), S%N)
             call left_ckbmult(S%ckb, A, S%N, S%ckbwork)
+            call left_diagmult(A, sigma * S%aldmu * S%h(:, l), S%N)
 
 
         endsubroutine left_Bmult
@@ -143,8 +143,8 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            call left_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
             call left_diagmult(A, sigma * S%aldmuinv * S%h(:, l), S%N)
+            call left_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
 
 
         endsubroutine left_Binvmult

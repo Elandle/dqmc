@@ -172,6 +172,7 @@ module simulationsetup_mod
 
 
         call read_ckb_dtau(S%ckb, dtau, ckbfilename, S%ckbiounit)
+        call read_ckb_dtau(S%ckbinv, -dtau, ckbfilename, S%ckbiounit)
 
 
     endsubroutine setup_simulation

@@ -8,9 +8,9 @@ program main
     integer          :: L           = 32
     integer          :: nstab       = 5
     integer          :: nbin        = 4
-    integer          :: nmeassweep  = 4 * 20
+    integer          :: nmeassweep  = 4 * 200
     integer          :: nskip       = 5
-    integer          :: nequil      = 20
+    integer          :: nequil      = 200
     real(dp)         :: dtau        = 0.125_dp
     real(dp)         :: temp        = 10.0_dp
     real(dp)         :: U           = 2.0_dp

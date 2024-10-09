@@ -12,6 +12,7 @@ program checkerboardtest
     real(dp), allocatable :: A(:, :)
     real(dp), allocatable :: B(:, :)
     real(dp), allocatable :: C(:, :)
+    integer i, j, k
 
 
     call read_ckb_dtau(ckb, 0.125_dp, filename, iounit)
@@ -30,6 +31,13 @@ program checkerboardtest
     print *, twonorm(A - B)
     print *, twonorm(C - A)
     print *, twonorm(B - C)
+
+    do j = 1, n
+        do i = 1, n
+            write(*, "(F12.6)", advance="no") A(i, j)
+        enddo
+        write(*, *) ""
+    enddo
 
 
 
