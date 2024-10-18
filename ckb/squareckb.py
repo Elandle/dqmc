@@ -1,6 +1,4 @@
 import numpy
-import networkx
-import scipy
 import ckb
 
 # 2d PERL
@@ -18,10 +16,10 @@ tx = 1
 ty = 1
 
 Kx = numpy.diag((nx-1) * [tx], k=1) + numpy.diag((nx-1) * [tx], k=-1)
-Kx[0, nx-1] = 1; Kx[nx-1, 0] = 1
+Kx[0, nx-1] = tx; Kx[nx-1, 0] = tx
 
 Ky = numpy.diag((ny-1) * [ty], k=1) + numpy.diag((ny-1) * [ty], k=-1)
-Ky[0, ny-1] = 1; Ky[ny-1, 0] = 1
+Ky[0, ny-1] = ty; Ky[ny-1, 0] = ty
 
 Idx = numpy.identity(nx)
 Idy = numpy.identity(ny)
@@ -29,11 +27,5 @@ Idy = numpy.identity(ny)
 K = numpy.kron(Idy, Kx) + numpy.kron(Ky, Idx)
 
 
-check = ckb.Ckb(K)
-print(len(check.colors))
-for color in check.colors:
-    print()
-    ijs = [ij for ij, col in check.coloring.items() if col == color]
-    print(len(ijs))
-    for i, j in ijs:
-        print(i+1, j+1, K[i, j], K[j, i])
+check = ckb.ckb(K)
+check.saveckb("squareckb.txt")

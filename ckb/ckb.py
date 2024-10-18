@@ -3,7 +3,7 @@ import scipy
 import networkx
 
 # Assumption: no diagonal, can easily be implemented or worked around
-class checkerboard:
+class ckb:
     def __init__(self, K, dtau=1):
         self.T = dtau * numpy.copy(K)
         self.n_T, _ = numpy.shape(self.T)
@@ -36,26 +36,16 @@ class checkerboard:
 
     def _constructapprox(self):
         self.approx = numpy.identity(self.n_T)
-        self.inpl_right_mult(self.approx)
+        self.right_mult(self.approx)
 
     
-    def inpl_right_mult(self, A):
+    def right_mult(self, A):
         for colour in self.ckbcolours:
             colour.right_mult(A)
 
-    def inpl_left_mult(self, A):
+    def left_mult(self, A):
         for colour in reversed(self.ckbcolours):
             colour.left_mult(A)
-
-    def right_mult(self, A):
-        M = numpy.copy(A)
-        self.inpl_right_mult(M)
-        return M
-    
-    def left_mult(self, A):
-        M = numpy.copy(A)
-        self.inpl_left_mult(M)
-        return M
     
     def saveckb(self, filename="ckb.txt"):
         with open(filename, "w") as file:

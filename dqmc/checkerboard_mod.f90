@@ -2,7 +2,7 @@ module checkerboard_mod
     use numbertypes
     implicit none
     !
-    ! Outline of the checkerboard method ---------
+    ! Outline of the checkerboard method
     !
     ! Main idea:
     !
@@ -123,6 +123,7 @@ module checkerboard_mod
         !
         integer  :: i, j
         real(dp) :: d, ij, ji
+
     endtype sympair
 
 
@@ -424,7 +425,7 @@ module checkerboard_mod
         endsubroutine left_ckbmult
 
 
-        subroutine read_ckb(ckb, filename, iounit)
+        subroutine read_ckb(ckb, filename, iounit, dtau)
             !
             ! Reads in an input checkerboard file and constructs its checkerboard
             !
@@ -463,9 +464,10 @@ module checkerboard_mod
             ! Repeat for the last color
             ! No blank line at the end
             !
-            type(checkerboard), intent(out) :: ckb
-            character(len=*)  , intent(in)  :: filename
-            integer           , intent(out) :: iounit
+            type(checkerboard), intent(out)           :: ckb
+            real(dp)          , intent(in), optional  :: dtau
+            character(len=*)  , intent(in)            :: filename
+            integer           , intent(out)           :: iounit
 
             integer  :: k, l
             integer  :: n_colors
@@ -474,9 +476,17 @@ module checkerboard_mod
             real(dp) :: ij, ji
             character(len=100) :: str
 
+            real(dp) :: scale
+
             ! TODO:
             ! Implement input error checking
             ! Get better at strings and rewrite (very brute force and basic here)
+
+            if (present(dtau)) then
+                scale = dtau
+            else
+                scale = 1.0_dp
+            endif
 
             ! Open the input file and assign it a unit  (should have no unit beforehand)
             open(file=filename, newunit=iounit)
@@ -497,7 +507,7 @@ module checkerboard_mod
                 do l = 1, n_col
                     read(iounit, "(a100)") str
                     read(str, *) i, j, ij, ji
-                    call construct_sympair(ckb%colours(k)%pairs(l), i, j, ij, ji)
+                    call construct_sympair(ckb%colours(k)%pairs(l), i, j, scale * ij, scale * ji)
                 enddo
             enddo
 
@@ -505,25 +515,12 @@ module checkerboard_mod
         endsubroutine read_ckb
 
 
-        subroutine read_ckb_dtau(ckb, dtau, filename, iounit)
-            !
-            ! The same as read_ckb, but also takes in a dtau argument
-            ! to scale each entry by.
-            !
-            ! In other words, if T is the matrix decomposed in filename
-            ! and read_ckb would store information for approximating multiplication by:
-            !
-            ! exp(T)
-            !
-            ! then this subroutine would store information for approximating
-            ! multiplication by:
-            !
-            ! exp(dtau * T)
-            !
-            type(checkerboard), intent(out) :: ckb
-            real(dp)          , intent(in)  :: dtau
-            character(len=*)  , intent(in)  :: filename
-            integer           , intent(out) :: iounit
+        subroutine read_ckbT(T, N, filename, iounit, dtau)
+            real(dp)          , intent(out)           :: T(N, N)
+            integer           , intent(in)            :: N
+            real(dp)          , intent(in) , optional :: dtau
+            character(len=*)  , intent(in)            :: filename
+            integer           , intent(out)           :: iounit
 
             integer  :: k, l
             integer  :: n_colors
@@ -532,9 +529,15 @@ module checkerboard_mod
             real(dp) :: ij, ji
             character(len=100) :: str
 
-            ! TODO:
-            ! Implement input error checking
-            ! Get better at strings and rewrite (very brute force and basic here)
+            real(dp) :: scale
+
+            if (present(dtau)) then
+                scale = dtau
+            else
+                scale = 1.0_dp
+            endif
+
+            T = 0
 
             ! Open the input file and assign it a unit  (should have no unit beforehand)
             open(file=filename, newunit=iounit)
@@ -542,25 +545,25 @@ module checkerboard_mod
             ! Read line 1: the number of colors
             read(iounit, "(a100)") str
             read(str, *) n_colors
-            call initialize_checkerboard(ckb, n_colors)
-        
+
             ! Iterate reading in the different colors
             do k = 1, n_colors
                 read(iounit, "(a100)") str ! This should be a blank line
                 ! After each blank is the number of symmetric pairs in a color
                 read(iounit, "(a100)") str
                 read(str, *) n_col
-                call initialize_ckbcolour(ckb%colours(k), n_col)
                 ! Iterate through symmetric pairs
                 do l = 1, n_col
                     read(iounit, "(a100)") str
                     read(str, *) i, j, ij, ji
-                    call construct_sympair(ckb%colours(k)%pairs(l), i, j, dtau * ij, dtau * ji)
+                    T(i, j) = scale * ij
+                    T(j, i) = scale * ji
                 enddo
             enddo
+        
 
+        endsubroutine read_ckbT
 
-        endsubroutine read_ckb_dtau
 
 
 endmodule checkerboard_mod

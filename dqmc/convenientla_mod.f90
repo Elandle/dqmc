@@ -96,6 +96,59 @@ module convenientla_mod
         endfunction twonorm
 
 
+        subroutine exponentiate(A)
+            !
+            ! Updates:
+            !
+            ! A = exp(A)
+            !
+            ! Implementation is coded just to work: performance is not good at all
+            ! To avoid working with LAPACK's real and imaginary components in
+            ! diagonalizing a real matrix, A is first copied to a complex matrix,
+            ! which is then diagonalized, exponentiated, and copied back to A
+            !
+            real(dp), intent(inout) :: A(:, :)
+
+            integer :: m, n, info, i, j
+            complex(dp), allocatable :: Z(:, :), W(:), VL(:, :), VR(:, :), work(:), VRinv(:, :)
+            real(dp) , allocatable :: rwork(:)
+            integer, allocatable :: P(:)
+
+            m = size(A, 1)
+            n = size(A, 2)
+
+            allocate(Z(n, n), W(n), VL(n, n), VR(n, n), work(10*n), rwork(2*n), VRinv(n, n))
+            allocate(P(n))
+
+            call zlacp2('a', n, n, A, n, Z, n)
+            call zgeev('V', 'V', n, Z, n, W, VL, n, VR, n, work, 10*n, rwork, info)
+            
+            W = exp(W)
+
+            call zlacpy('a', n, n, VR, n, VRinv, n)
+            P = 0
+            call zgetrf(n, n, VRinv, n, P, info)
+            call zgetri(n, VRinv, n, P, work, 10*n, info)
+
+
+            do i = 1, n
+                call zscal(n, W(i), VR(1, i), 1)
+            enddo
+
+            call zgemm('n', 'n', n, n, n, cmplx(1.0_dp, kind=dp), VR, n, VRinv, n, cmplx(0.0_dp, kind=dp), Z, n)
+
+            A = real(Z, kind=dp)
+
+
+
+
+
+        endsubroutine exponentiate
+
+
+
+
+
 
 
 

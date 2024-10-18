@@ -6,11 +6,18 @@ module simulate_mod
     use measurements_mod
     use statistics_mod
     implicit none
-
-
+    !
+    ! Contains procedures for carrying out a DQMC simulation in full,
+    ! and for completing sweeps.
+    !
     contains
 
+
         subroutine sweep(S)
+            !
+            ! Sweeps through all imaginary time slices 1, ..., L, performing
+            ! one Monte Carlo sweep.
+            !
             type(Simulation), intent(inout) :: S
 
             integer :: l
@@ -19,17 +26,24 @@ module simulate_mod
                 ! Sweep through imaginary time
 
                 ! Update Green's functions for this time slice
-                call uptimeupdate(S, l)
-                call dntimeupdate(S, l)
+                call timeupdate(S, l, 1)
+                call timeupdate(S, l, -1)
 
                 ! Sweep through sites of the lattice at slice l
                 call sweepslice(S, l)
                 
             enddo
 
+
         endsubroutine sweep
 
         subroutine sweepslice(S, l)
+            !
+            ! Sweeps slice l in a DQMC simulation.
+            !
+            ! Sweeps through all sites 1, ..., N, proposing a flip,
+            ! for a given imaginary time slice l
+            !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
 
@@ -40,8 +54,8 @@ module simulate_mod
                 ! Proposal: flip h(i, l)
 
                 ! Calculating the acceptance probability R of that flip
-                call greens_Rup(S, i, l)
-                call greens_Rdn(S, i, l)
+                call greens_R(S, i, l, 1)
+                call greens_R(S, i, l, -1)
                 S%upsgn = sgn(S%Rup)
                 S%dnsgn = sgn(S%Rdn)
                 S%sgn   = S%upsgn * S%dnsgn
@@ -58,19 +72,22 @@ module simulate_mod
                     S%h(i, l) = -S%h(i, l)
 
                     ! Update Green's functions
-                    call upflipupdate(S, i)
-                    call dnflipupdate(S, i)
+                    call flipupdate(S, i, 1)
+                    call flipupdate(S, i, -1)
 
                 else
                     ! Reject the flip
                 endif
-
             enddo
+
 
         endsubroutine sweepslice
 
 
         subroutine warmup(S)
+            !
+            ! Performs the warmup sweeps of a DQMC simulation as specified by S
+            !
             type(Simulation), intent(inout) :: S
 
             integer :: i, l
@@ -81,16 +98,18 @@ module simulate_mod
             ! l = 1 imaginary time sweep:
             l = 1
             print *, "Warmup sweep ", 1, "..."
-            call newGup(S, l)
-            call newGdn(S, l)
+            call newG(S, l, 1)
+            call newG(S, l, -1)
             call sweepslice(S, l)
 
             do l = 2, S%L
                 ! Sweep through imaginary time
 
                 ! Update Green's functions for this time slice
-                call uptimeupdate(S, l)
-                call dntimeupdate(S, l)
+                ! call timeupdate(S, l, 1)
+                ! call timeupdate(S, l, -1)
+                call newG(S, l, 1)
+                call newG(S, l, -1)
 
                 ! Sweep through sites of the lattice at slice l
                 call sweepslice(S, l)
@@ -107,6 +126,9 @@ module simulate_mod
 
 
         subroutine simulate(S)
+            !
+            ! Runs a DQMC simulation as specified by S
+            !
             type(Simulation), intent(inout) :: S
 
             integer :: i, j, k
@@ -163,7 +185,7 @@ module simulate_mod
 
             ! Output results
             ! call output
-            print *, "Average sign = ", S%sgnavg, "+-", S%sgnerr
+            print *, "Average sign  = ", S%sgnavg, "+-", S%sgnerr
             print *, "Average upden = ", S%updenavg, "+-", S%updenerr
             print *, "Average dnden = ", S%dndenavg, "+-", S%dndenerr
 
@@ -172,6 +194,12 @@ module simulate_mod
 
 
         integer function sgn(x)
+            !
+            ! Returns the sign of x as an integer.
+            !
+            !     1 if x >= 0
+            !    -1 if x <  0
+            !
             real(dp), intent(in) :: x
 
             if (x .ge. 0.0_dp) then
@@ -182,10 +210,6 @@ module simulate_mod
 
 
         endfunction sgn
-
-
-
-
 
 
 endmodule simulate_mod

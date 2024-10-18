@@ -1,12 +1,10 @@
-module bmult_mod
+module bmultexact_mod
     use numbertypes
-    use checkerboard_mod
     use simulationsetup_mod
     use customla_mod
-    implicit none
     !
     ! Contains procedures for multiplying by and creating
-    ! single-electron propagators making use of the checkerboard method.
+    ! single-electron propagators without making use of the checkerboard method.
     !
     ! Mathematically, the single-electron propagator B(l) from time step l-1
     ! to l with spin sigma (1 for up, -1 for dn) is:
@@ -14,7 +12,7 @@ module bmult_mod
     ! B(l) = exp(dtau * mu) * diag(exp(sigma * alpha * h(:, l)))             * exp(dtau * T)
     !      =                  diag(exp(sigma * alpha * h(:, l) + dtau * mu)) * exp(dtau * T)
     !
-    ! Multiplication by exp(dtau * T) is done by use of the checkerboard method.
+    ! Multiplication by exp(dtau * T) is done by dense matrix multiplication.
     !
     contains
 
@@ -30,10 +28,9 @@ module bmult_mod
             !
             ! As a matrix:
             !
-            ! B(l) = exp(dtau * mu) * diag(exp(sigma * alpha * h(:, l)))             * exp(dtau * T)
-            !      =                  diag(exp(sigma * alpha * h(:, l) + dtau * mu)) * exp(dtau * T)
+            ! B(l) = exp(dtau * mu) * diag(exp(sigma * alpha * h(:, l))) * exp(dtau * T)
             !
-            ! First A is updated by diag(exp(sigma * S%alpha * S%h(:, l) + dtau * mu)) by column updates
+            ! First A is updated by diag(exp(sigma * S%alpha * S%h(:, l))) by column updates
             ! Then A is updated by exp(dtau * T) by column updates with the checkerboard method
             !
             type(Simulation), intent(inout) :: S
@@ -41,8 +38,10 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            call right_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
-            call right_ckbmult(S%ckb, A, S%N, S%ckbwork)
+            call right_diagmult(A, exp(sigma * S%alpha * S%h(:, l)), S%N)
+            call right_matmul(A, S%expT, S%N, S%qrdB)
+            ! TODO: combine with diagmult exp, once certain this is working
+            A = exp(S%dtau * S%mu) * A
 
 
         endsubroutine right_Bmult
@@ -59,19 +58,19 @@ module bmult_mod
             !
             ! As a matrix:
             !
-            ! B(l) = exp(dtau * mu) * diag(exp(sigma * alpha * h(:, l)))             * exp(dtau * T)
-            !      =                  diag(exp(sigma * alpha * h(:, l) + dtau * mu)) * exp(dtau * T)
+            ! B(l) = exp(dtau * mu) * diag(exp(sigma * alpha * h(:, l))) * exp(dtau * T)
             !
             ! First A is updated by exp(dtau * T) by row updates with the checkerboard method
-            ! Then A is updated by diag(exp(sigma * alpha * h(:, l) + dtau * mu)) * exp(dtau * T) by row updates
+            ! Then A is updated by diag(exp(sigma * alpha * h(:, l))) by row updates
             !
             type(Simulation), intent(inout) :: S
             real(dp)        , intent(inout) :: A(S%N, S%N)
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            call left_ckbmult(S%ckb, A, S%N, S%ckbwork)
-            call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
+            call left_matmul(A, S%expT, S%N, S%qrdB)
+            call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l)), S%N)
+            A = exp(S%dtau * S%mu) * A
 
 
         endsubroutine left_Bmult
@@ -92,18 +91,19 @@ module bmult_mod
             !
             ! inv(B(l)) = inv(exp(dtau * mu)) * inv(exp(dtau * T)) * inv(diag(exp(sigma * alpha * h(:, l))))
             !           = exp(-dtau * mu)     * exp(-dtau * T)     * diag(exp(-sigma * alpha * h(:, l)))
-            !           =                       exp(-dtau * T)     * diag(exp(-sigma * alpha * h(:, l) - dtau * mu))
+            !
             !
             ! First A is updated by exp(-dtau * T) by row updates with the checkerboard method
-            ! Then A is updated by diag(exp(-sigma * alpha * h(:, l) - dtau * mu)) by row updates
+            ! Then A is updated by diag(exp(-sigma * alpha * h(:, l))) by row updates
             !
             type(Simulation), intent(inout) :: S
             real(dp)        , intent(inout) :: A(S%N, S%N)
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            call right_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
-            call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
+            call right_matmul(A, S%expTinv, S%N, S%qrdB)
+            call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
+            A = exp(-S%dtau * S%mu) * A
 
 
         endsubroutine right_Binvmult
@@ -124,7 +124,7 @@ module bmult_mod
             !
             ! inv(B(l)) = inv(exp(dtau * mu)) * inv(exp(dtau * T)) * inv(diag(exp(sigma * alpha * h(:, l))))
             !           = exp(-dtau * mu)     * exp(-dtau * T)     * diag(exp(-sigma * alpha * h(:, l)))
-            !           =                       exp(-dtau * T)     * diag(exp(-sigma * alpha * h(:, l) - dtau * mu))
+            !
             !
             ! First A is updated by exp(-dtau * T) by row updates with the checkerboard method
             ! Then A is updated by diag(exp(-sigma * alpha * h(:, l))) by row updates
@@ -134,8 +134,9 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
-            call left_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
+            call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
+            call left_matmul(A, S%expTinv, S%N, S%qrdB)
+            A = A / exp(S%dtau * S%mu)
 
 
         endsubroutine left_Binvmult
@@ -168,4 +169,4 @@ module bmult_mod
         endsubroutine make_B
 
 
-endmodule bmult_mod
+endmodule bmultexact_mod

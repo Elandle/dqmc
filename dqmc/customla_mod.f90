@@ -52,14 +52,14 @@ module customla_mod
             ! For some reason, it seems only some BLAS/LAPACK distributions contain the
             ! dlascl2 subroutine
 
-            ! call dlascl2(n, n, D, A, n)
+            call dlascl2(n, n, D, A, n)
 
             ! SECOND BEST
             ! Alternative BLAS:
-            integer :: i
-            do i = 1, n
-                call dscal(n, D(i), A(i, 1), n)
-            enddo
+            ! integer :: i
+            ! do i = 1, n
+            !     call dscal(n, D(i), A(i, 1), n)
+            ! enddo
 
             ! THIRD BEST
             ! No BLAS:
@@ -118,14 +118,14 @@ module customla_mod
             ! dlarscl2 subroutine
 
             ! BEST
-            ! call dlarscl2(n, n, D, A, 1)
+            call dlarscl2(n, n, D, A, n)
 
             ! SECOND BEST
             ! Alternative BLAS:
-            integer :: i
-            do i = 1, n
-                call dscal(n, 1.0_dp / D(i), A(i, 1), n)
-            enddo
+            ! integer :: i
+            ! do i = 1, n
+            !     call dscal(n, 1.0_dp / D(i), A(i, 1), n)
+            ! enddo
 
             ! THIRD BEST
             ! No BLAS:
@@ -264,29 +264,6 @@ module customla_mod
 
 
         endsubroutine permutecols
-
-
-        subroutine add_id(A, n)
-            !
-            ! Updates:
-            !
-            ! A = A + id
-            !
-            real(dp), intent(inout) :: A(n, n)
-            integer , intent(in)    :: n
-
-            integer :: i
-
-            ! TODO:
-            ! Maybe change do to do concurrent?
-            ! See if a BLAS/LAPACK subroutine would fit here
-            
-            do i = 1, n
-                A(i, i) = A(i, i) + 1.0_dp
-            enddo
-
-
-        endsubroutine
 
 
         subroutine invert(A, n, P, work, lwork, info)
@@ -453,7 +430,57 @@ module customla_mod
         endsubroutine left_matmul
 
 
-        
+        subroutine right_matmul(A, B, n, work)
+            !
+            ! Updates:
+            !
+            ! A = A * B
+            !
+            ! where A and B are n x n matrices.
+            !
+            ! Uses a supplied work matrix to hold a temporary copy of A (since
+            ! there is no A = A * B general matrix update routine in BLAS/LAPACK).
+            !
+            ! This subroutine should be avoided at all costs, but it might be
+            ! necessary to use at times.
+            !
+            real(dp), intent(inout) :: A(n, n)
+            real(dp), intent(in)    :: B(n, n)
+            integer , intent(in)    :: n
+            real(dp), intent(in)    :: work(n, n)
+            
+            ! work = A
+            call dlacpy('a', N, N, A, N, work, N)
+            ! A = work * B
+            call dgemm('n', 'n', N, N, N, 1.0_dp, work, N, B, N, 0.0_dp, A, N)
+
+
+        endsubroutine right_matmul
+
+
+        subroutine trans(A, B, n)
+            !
+            ! Sets:
+            !
+            ! A = trans(B)
+            !
+            real(dp), intent(out) :: A(n, n)
+            real(dp), intent(in)  :: B(n, n)
+            integer , intent(in)  :: n
+
+            integer :: i
+            integer :: j
+
+            ! TODO: see if BLAS/LAPACK can be implemented
+
+            do j = 1, n
+                do i = 1, n
+                    A(i, j) = B(j, i)
+                enddo
+            enddo
+
+
+        endsubroutine trans
 
 
 endmodule customla_mod
