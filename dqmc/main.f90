@@ -11,16 +11,16 @@ program main
     !
     type(Simulation)   :: S
     integer            :: N           = 16
-    integer            :: L           = 20
-    integer            :: nstab       = 2
-    integer            :: nbin        = 5
-    integer            :: nmeassweep  = 5 * 100
+    integer            :: L           = 40
+    integer            :: nstab       = 5
+    integer            :: nbin        = 32
+    integer            :: nmeassweep  = 32 * 1000
     integer            :: nskip       = 5
     integer            :: nequil      = 100
     real(dp)           :: dtau        = 0.125_dp
-    real(dp)           :: U           = 2.0_dp
+    real(dp)           :: U           = 4.0_dp
     real(dp)           :: mu          = 0.0_dp
-    character(len=100) :: filename = "squareckb.txt"
+    character(len=100) :: filename    = "squareckb.txt"
 
 
 

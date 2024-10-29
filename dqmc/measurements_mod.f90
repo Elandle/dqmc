@@ -74,12 +74,14 @@ module measurements_mod
 
             integer :: j
 
+            S%updenbin(i) = 0
+            S%dndenbin(i) = 0
             do j = 1, S%N
                 S%updenbin(i) = S%updenbin(i) + 1.0_dp - S%Gup(j, j)
-                S%dndenbin(i) = S%updenbin(i) + 1.0_dp - S%Gdn(j, j)
+                S%dndenbin(i) = S%dndenbin(i) + 1.0_dp - S%Gdn(j, j)
             enddo
-            S%updenbin(i) = S%sgn * (S%updenbin(i) / S%N)
-            S%dndenbin(i) = S%sgn * (S%dndenbin(i) / S%N)
+            S%updenbin(i) = S%sgn * S%updenbin(i) / S%N
+            S%dndenbin(i) = S%sgn * S%dndenbin(i) / S%N
 
 
         endsubroutine measure_den

@@ -211,27 +211,7 @@ module equalgreens_mod
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
 
-            integer :: j
-
-            ! integer :: i
-
-            ! This WORKS (!!!) .... at least when stability isn't an issue
-            ! The bug must be here somewhere...
-            ! j = 1
-            ! call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
-            ! do j = 2, S%L
-            !     call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
-            ! enddo
-            ! do j = 1, S%N
-            !     S%qrdQ(j, j) = S%qrdQ(j, j) + 1.0_dp
-            ! enddo
-            ! call invert(S%qrdQ, S%N, S%invP, S%invwork, S%invlwork, S%info)
-            ! if (sigma .eq. 1) then
-            !     S%Gup = S%qrdQ
-            ! else
-            !     S%Gdn = S%qrdQ
-            ! endif
-            ! return
+            integer :: j, i
 
             ! Iteration j = 1
             j = 1
@@ -247,8 +227,7 @@ module equalgreens_mod
             ! S%qrdT = inv(S%qrdD) * S%qrdT
             call left_diaginvmult(S%qrdT, S%qrdD, S%N)
             ! S%qrdT = S%qrdT * inv(P)
-            call invert_permutation(S%qrdP, S%qrdI, S%N) ! S%qrdI = inv(S%qrdP)
-            call permutecols(S%qrdT, S%qrdI, S%N)
+            call colpivswap(S%qrdT, S%qrdP, S%N, S%qrdB)
             
             do j = 2, S%L
                 ! S%qrdQ = full Q (from previous iteration QRP factorisation)
@@ -267,37 +246,12 @@ module equalgreens_mod
                 ! S%qrdR = inv(S%qrdD) * S%qrdR
                 call left_diaginvmult(S%qrdR, S%qrdD, S%N)
                 ! S%qrdR = S%qrdR * inv(P)
-                call invert_permutation(S%qrdP, S%qrdI, S%N) ! S%qrdI = inv(S%qrdP)
-                call permutecols(S%qrdR, S%qrdI, S%N)
+                call colpivswap(S%qrdR, S%qrdP, S%N, S%qrdmatwork)
                 ! S%qrdT = S%qrdR * S%qrdT
                 call left_matmul(S%qrdT, S%qrdR, S%N, S%qrdB) ! Should try to get rid of calling this subroutine
                                                               ! S%qrdB: a work array to hold a matrix copy
             enddo
-
-            !call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
-            !call right_diagmult(S%qrdQ, S%qrdD, S%N)
-            !call left_matmul(S%qrdT, S%qrdQ, S%N, S%qrdB)
-
-            !S%qrdR = S%qrdT
-            !do j = 1, S%N
-            !    S%qrdR(j, j) = S%qrdR(j, j) + 1.0_dp
-            !enddo
-            !call invert(S%qrdR, S%N, S%invP, S%invwork, S%invlwork, S%info)
-            !if (sigma .eq. 1) then
-            !    S%Gup = S%qrdR
-            !else
-            !    S%Gdn = S%qrdR
-            !endif
-            !return
-            !do j = 1, S%N
-            !    do i = 1, S%N
-            !        write(*, "(F12.6)", advance="no") S%qrdR(i, j)
-            !    enddo
-            !    write(*, *) ""
-            !enddo
-            !write(*, *) ""
-            
-            
+        
             ! Now to finish calculating G
 
             ! D(L) = Db * Ds decomposition, see ASvQRD algorithm

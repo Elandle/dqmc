@@ -402,6 +402,7 @@ module customla_mod
 
         endsubroutine add_matrix
 
+
         subroutine left_matmul(A, B, n, work)
             !
             ! Updates:
@@ -481,6 +482,128 @@ module customla_mod
 
 
         endsubroutine trans
+
+
+        subroutine dlaswpc(n, a, lda, k1, k2, ipiv, incx)
+            !
+            !    MODIFIED VERSION OF DLASWP
+            !  -- LAPACK auxiliary routine --
+            !  -- LAPACK is a software package provided by Univ. of Tennessee,    --
+            !  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
+            !
+            !     .. Scalar Arguments ..
+            integer            incx, k1, k2, lda, n
+            !     ..
+            !     .. Array Arguments ..
+            integer            ipiv(*)
+            double precision   A(lda, *)
+            !     ..
+            !
+            ! =====================================================================
+            !
+            !     .. Local Scalars ..
+            integer            i, i1, i2, inc, ip, ix, ix0, j, k, n32
+            double precision   temp
+            !     ..
+            !     .. Executable Statements ..
+            !
+            !     Interchange row i with row ipiv(k1+(i-k1)*abs(incx)) for each of rows
+            !     k1 through k2.
+            !
+            if (incx .gt. 0) then
+                ix0 = k1
+                i1  = k1
+                i2  = k2
+                inc = 1
+            elseif (incx .lt. 0) then
+                ix0 = k1 + (k1-k2) * incx
+                i1  = k2
+                i2  = k1
+                inc = -1
+            else
+                return
+            endif
+            !
+            n32 = (n/32) * 32
+            if (n32 .ne. 0) then
+                do 30 j = 1, n32, 32
+                    ix = ix0
+                    do 20 i = i1, i2, inc
+                        ip = ipiv(ix)
+                        if (ip .ne. i) then
+                            do 10 k = j, j + 31
+                                temp     = a(k , i)
+                                a(k , i) = a(k, ip)
+                                a(k, ip) = temp
+        10                  continue
+                        endif
+                        ix = ix + incx
+        20          continue
+        30      continue
+            endif
+        
+            if (n32 .ne. n) then
+                n32 = n32 + 1
+                ix  = ix0
+                do 50 i = i1, i2, inc
+                    ip = ipiv(ix)
+                    if (ip .ne. i) then
+                        do 40 k = n32, n
+                            temp     = a(k , i)
+                            a(k , i) = a(k, ip)
+                            a(k, ip) = temp
+        40              continue
+                    endif
+                    ix = ix + incx
+        50      continue
+            endif
+            !
+            return
+            !
+            !     End of DLASWP
+            !
+
+
+        endsubroutine dlaswpc
+
+
+        subroutine colpivswap(A, piv, n, matwork)
+            !
+            ! Swaps the columns of the n x n matrix A according to the n
+            ! long integer vector piv
+            !
+            ! If piv(i) = k, then column i of A becomes column k of A
+            !
+            ! In other words, for i = 1, 2, ..., n:
+            !
+            !       A(:, piv(i)) = A(:, i)
+            !
+            ! Where this replacement is done independently (changes where
+            ! columns are do not affect other column changes)
+            !
+            real(dp), intent(inout) :: A(n, n)
+            integer , intent(in)    :: piv(n)
+            integer , intent(in)    :: n
+            real(dp), intent(out)   :: matwork(n, n)
+
+            integer i
+
+            !
+            ! TODO:
+            ! Can this be done without copying A?
+            !
+
+            call copy_matrix(A, matwork, n)
+
+            do i = 1, n
+               if (piv(i) .ne. i) then ! Do not copy a column if it is already in the right place
+                   ! A(:, piv(i)) = matwork(:, i)
+                   call dcopy(n, matwork(1, i), 1, A(1, piv(i)), 1)
+               endif
+            enddo
+
+
+        endsubroutine colpivswap
 
 
 endmodule customla_mod
