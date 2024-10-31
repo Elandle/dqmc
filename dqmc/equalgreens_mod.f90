@@ -211,7 +211,7 @@ module equalgreens_mod
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
 
-            integer :: j, i
+            integer :: j
 
             ! Iteration j = 1
             j = 1

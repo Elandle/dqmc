@@ -106,10 +106,8 @@ module simulate_mod
                 ! Sweep through imaginary time
 
                 ! Update Green's functions for this time slice
-                ! call timeupdate(S, l, 1)
-                ! call timeupdate(S, l, -1)
-                call newG(S, l, 1)
-                call newG(S, l, -1)
+                call timeupdate(S, l, 1)
+                call timeupdate(S, l, -1)
 
                 ! Sweep through sites of the lattice at slice l
                 call sweepslice(S, l)
@@ -185,7 +183,7 @@ module simulate_mod
 
             ! Output results
             ! call output
-            print *, "Average sign  = ", S%sgnavg, "+-", S%sgnerr
+            print *, "Average sign  = ", S%sgnavg  , "+-", S%sgnerr
             print *, "Average upden = ", S%updenavg, "+-", S%updenerr
             print *, "Average dnden = ", S%dndenavg, "+-", S%dndenerr
 

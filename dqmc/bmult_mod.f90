@@ -105,7 +105,6 @@ module bmult_mod
             call right_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
             call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
 
-
         endsubroutine right_Binvmult
 
 

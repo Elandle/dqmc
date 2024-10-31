@@ -208,8 +208,8 @@ module simulationsetup_mod
         allocate(S%dndenbin(S%binsize))
         allocate(S%dndenbinavgs(nbin))
 
-        call read_ckb(S%ckb, ckbfilename, S%ckbiounit, dtau)
-        call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, dtau)
+        call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
+        call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
 
         ! Makes the random number generator give the same results every time
         ! TODO: implement seed

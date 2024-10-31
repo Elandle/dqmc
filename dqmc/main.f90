@@ -11,10 +11,10 @@ program main
     !
     type(Simulation)   :: S
     integer            :: N           = 16
-    integer            :: L           = 40
-    integer            :: nstab       = 5
-    integer            :: nbin        = 32
-    integer            :: nmeassweep  = 32 * 1000
+    integer            :: L           = 60
+    integer            :: nstab       = 10
+    integer            :: nbin        = 5
+    integer            :: nmeassweep  = 5 * 500
     integer            :: nskip       = 5
     integer            :: nequil      = 100
     real(dp)           :: dtau        = 0.125_dp
