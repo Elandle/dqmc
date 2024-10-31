@@ -606,4 +606,17 @@ module customla_mod
         endsubroutine colpivswap
 
 
+        function matdiff(A, B, n)
+            real(dp), intent(in) :: A(n, n)
+            real(dp), intent(in) :: B(n, n)
+            integer , intent(in) :: n
+            real(dp)             :: matdiff
+            real(dp), external   :: dnrm2
+
+            matdiff = dnrm2(n*n, A - B, 1) / n
+
+
+        endfunction matdiff
+
+
 endmodule customla_mod

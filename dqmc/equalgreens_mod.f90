@@ -185,7 +185,7 @@ module equalgreens_mod
             integer         , intent(in)    :: sigma
 
             if (sigma .eq. 1) then          ! up spin (sigma = 1)
-                if (mod(S%upstabi+1, S%nstab) .eq. 0) then
+                if ((mod(S%upstabi+1, S%nstab) .eq. 0) .or. (l .eq. 1)) then
                     call newG(S, l, sigma)
                     S%upstabi = 0
                 else
@@ -193,7 +193,7 @@ module equalgreens_mod
                     S%upstabi = S%upstabi + 1
                 endif
             else                            ! dn spin (sigma = -1)
-                if (mod(S%dnstabi+1, S%nstab) .eq. 0) then
+                if ((mod(S%dnstabi+1, S%nstab) .eq. 0) .or. (l .eq. 1)) then
                     call newG(S, l, sigma)
                     S%dnstabi = 0
                 else
@@ -211,12 +211,17 @@ module equalgreens_mod
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
 
-            integer :: j
+            integer :: j ! B matrix counter
+            integer :: i ! north counter
 
             ! Iteration j = 1
             j = 1
             ! S%qrdQ = B(l)
             call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
+            ! north-1 more B multiplications before QRP factorisation
+            do j = 2, S%north
+                call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+            enddo
             ! QRP factorise S%qrdQ
             S%qrdP = 0
             call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
@@ -228,12 +233,20 @@ module equalgreens_mod
             call left_diaginvmult(S%qrdT, S%qrdD, S%N)
             ! S%qrdT = S%qrdT * inv(P)
             call colpivswap(S%qrdT, S%qrdP, S%N, S%qrdB)
-            
-            do j = 2, S%L
+
+            ! north B matrices have been multiplied and QRP factorised by now
+            j = S%north + 1
+            do while (j .lt. S%L)
                 ! S%qrdQ = full Q (from previous iteration QRP factorisation)
                 call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
-                ! S%qrdQ = B(getj(j)) * S%qrdQ
-                call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                ! Multiply north B matrices into Q (unless j reaches L along the way)
+                i = 0
+                do while ((i .lt. S%north) .and. (j .lt. S%L))
+                    ! S%qrdQ = B(getj(j)) * S%qrdQ
+                    call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                    i = i + 1
+                    j = j + 1
+                enddo
                 ! S%qrdQ = S%qrdQ * S%qrdD (S%qrdD from previous iteration)
                 call right_diagmult(S%qrdQ, S%qrdD, S%N)
                 ! QRP factorise S%qrdQ

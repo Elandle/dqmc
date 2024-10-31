@@ -12,20 +12,21 @@ program main
     type(Simulation)   :: S
     integer            :: N           = 16
     integer            :: L           = 60
-    integer            :: nstab       = 10
+    integer            :: nstab       = 1
+    integer            :: north       = 60
     integer            :: nbin        = 5
     integer            :: nmeassweep  = 5 * 500
     integer            :: nskip       = 5
     integer            :: nequil      = 100
-    real(dp)           :: dtau        = 0.125_dp
-    real(dp)           :: U           = 4.0_dp
+    real(dp)           :: dtau        = 0.08_dp
+    real(dp)           :: U           = 2.0_dp
     real(dp)           :: mu          = 0.0_dp
     character(len=100) :: filename    = "squareckb.txt"
 
 
 
     
-    call setup_simulation(S, N, L, nstab, nbin, nmeassweep, nskip, nequil, &
+    call setup_simulation(S, N, L, nstab, north, nbin, nmeassweep, nskip, nequil, &
                           dtau, U, mu, filename)
     S%h = 1
     call simulate(S)

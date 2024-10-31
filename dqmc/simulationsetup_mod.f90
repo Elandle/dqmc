@@ -25,6 +25,7 @@ module simulationsetup_mod
         integer :: L          ! Number of imaginary time slices
         
         integer :: nstab      ! Every nstab flips, the Green's functions will be computed from scratch
+        integer :: north      ! How many single particle propagator's (B matrices) can be multiplied together accurately before doing a QRP
         integer :: nbin       ! How many bins to put measurements into (must divide nmeassweep)
         integer :: nmeassweep ! How many sweeps will have measurements performed
         integer :: nskip      ! How many sweeps to skip between measurements
@@ -132,7 +133,7 @@ module simulationsetup_mod
 
     contains
 
-    subroutine setup_simulation(S, N, L, nstab, nbin, nmeassweep, nskip, nequil, &
+    subroutine setup_simulation(S, N, L, nstab, north, nbin, nmeassweep, nskip, nequil, &
         dtau, U, mu, ckbfilename)
         !
         ! Main way of setting up a simulation datatype S for use in simulation.
@@ -143,6 +144,7 @@ module simulationsetup_mod
         integer           , intent(in)    :: N
         integer           , intent(in)    :: L
         integer           , intent(in)    :: nstab
+        integer           , intent(in)    :: north
         integer           , intent(in)    :: nbin
         integer           , intent(in)    :: nmeassweep
         integer           , intent(in)    :: nskip
@@ -157,6 +159,7 @@ module simulationsetup_mod
         S%L          = L
 
         S%nstab      = nstab
+        S%north      = north
         S%nbin       = nbin
         S%nmeassweep = nmeassweep
         S%nskip      = nskip
