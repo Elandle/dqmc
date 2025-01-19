@@ -10,3 +10,5 @@ newQUEST will be considered to be in version 1 once its single-thread (ie, no mp
 # Compiling
 
 newQUEST has moved to Fortran Package Manager (fpm https://fpm.fortran-lang.org/) for building from Make. This is still new to me, so I'll add instructions once I figure it out more. For now, if you have fpm installed, just type fpm build and the code will automagically compile. fpm makes a bunch of random files and folders, in which you can find a main file. This is the main thing to run.
+
+Note: it appears some LAPACK distributions don't have the routines dlarscl2 and dlascl2 (eg, my Mac has it but my Linux pc doesn't). If you get compilation errors due to this, go to customla_mod.f90 and the left_diaginvmult and left_diagmult subroutines. Comment out those problematic calls and uncomment out the alternatives (just below).
