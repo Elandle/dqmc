@@ -3,7 +3,7 @@ fc := gfortran
 fc_flags := -Ofast
 bmult := bmult_mod.o
 #bmult := bmultexact_mod.o
-mods := numbertypes.o simulate_mod.o equalgreens_mod.o customla_mod.o checkerboard_mod.o metropolisratios_mod.o $(bmult) simulationsetup_mod.o measurements_mod.o statistics_mod.o convenientla_mod.o
+mods := numbertypes.o simulate_mod.o equalgreens_mod.o customla_mod.o checkerboard_mod.o metropolisratios_mod.o $(bmult) simulationsetup_mod.o measurements_mod.o statistics_mod.o convenientla_mod.o polarization_mod.o
 
 all: main.out
 
@@ -29,7 +29,7 @@ checkerboard_mod.o: checkerboard_mod.f90 numbertypes.o
 equalgreens_mod.o: equalgreens_mod.f90 numbertypes.o simulationsetup_mod.o $(bmult)
 	$(fc) $(fc_flags) -c equalgreens_mod.f90
 
-measurements_mod.o: measurements_mod.f90 numbertypes.o
+measurements_mod.o: measurements_mod.f90 numbertypes.o polarization_mod.o
 	$(fc) $(fc_flags) -c measurements_mod.f90
 
 metropolisratios_mod.o: metropolisratios_mod.f90 numbertypes.o simulationsetup_mod.o
@@ -52,6 +52,9 @@ statistics_mod.o: statistics_mod.f90 numbertypes.o
 
 bmultexact_mod.o: bmultexact_mod.f90 numbertypes.o simulationsetup_mod.o customla_mod.o
 	$(fc) $(fc_flags) -c bmultexact_mod.f90
+
+polarization_mod.o: polarization_mod.f90 numbertypes.o simulationsetup_mod.o equalgreens_mod.o
+	$(fc) $(fc_flags) -c polarization_mod.f90
 
 clean:
 	rm -rf *.o *.mod *.out

@@ -12,8 +12,8 @@ ny = 4
 
 n = nx * ny
 
-tx = 1
-ty = 1
+tx = 0
+ty = 0
 
 Kx = numpy.diag((nx-1) * [tx], k=1) + numpy.diag((nx-1) * [tx], k=-1)
 Kx[0, nx-1] = tx; Kx[nx-1, 0] = tx
@@ -28,4 +28,4 @@ K = numpy.kron(Idy, Kx) + numpy.kron(Ky, Idx)
 
 
 check = ckb.ckb(K)
-check.saveckb("squareckb.txt")
+check.saveckb("squareckbzero.txt")

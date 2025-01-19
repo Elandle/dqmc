@@ -619,4 +619,77 @@ module customla_mod
         endfunction matdiff
 
 
+        subroutine determinant(det, A, n, P, info)
+            !
+            ! Sets:
+            !
+            ! det = det(A)
+            !
+            ! by first factorising A = P * L * U (destroying A),
+            ! and calculating the determinant by multiplying the diagonal of U
+            ! and adjusting the sign based on P
+            !
+            real(dp)                :: det
+            real(dp), intent(inout) :: A(n, n)
+            integer , intent(in)    :: n
+            integer , intent(out)   :: P(n)
+            integer , intent(out)   :: info
+
+            integer :: i
+
+            ! A = P * L * U
+            call dgetrf(n, n, A, n, P, info)
+
+            det = A(1, 1)
+            if (P(1) .ne. 1) then
+                det = -1 * det
+            endif
+
+            do i = 2, n
+                det = det * A(i, i)
+                if (P(i) .ne. i) then
+                    det = -1 * det
+                endif
+            enddo
+
+
+        endsubroutine determinant
+
+
+        subroutine zdeterminant(det, A, n, P, info)
+            !
+            ! Sets:
+            !
+            ! det = det(A)
+            !
+            ! by first factorising A = P * L * U (destroying A),
+            ! and calculating the determinant by multiplying the diagonal of U
+            ! and adjusting the sign based on P
+            !
+            complex(dp)                :: det
+            complex(dp), intent(inout) :: A(n, n)
+            integer    , intent(in)    :: n
+            integer    , intent(out)   :: P(n)
+            integer    , intent(out)   :: info
+
+            integer :: i
+
+            ! A = P * L * U
+            call zgetrf(n, n, A, n, P, info)
+
+            det = A(1, 1)
+            if (P(1) .ne. 1) then
+                det = -1 * det
+            endif
+
+            do i = 2, n
+                det = det * A(i, i)
+                if (P(i) .ne. i) then
+                    det = -1 * det
+                endif
+            enddo
+
+
+        endsubroutine zdeterminant
+
 endmodule customla_mod

@@ -1,6 +1,7 @@
 module measurements_mod
     use numbertypes
     use simulationsetup_mod
+    use polarization_mod
     use statistics_mod
     implicit none
     !
@@ -51,9 +52,25 @@ module measurements_mod
 
             call measure_sgn(S, i)
             call measure_den(S, i)
+            call measure_spindenscorr(S, i)
+            call measure_pol(S, i)
+
 
 
         endsubroutine measure
+
+
+        subroutine measure_pol(S, i)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: i
+
+            call measure_P(S, S%polB, S%polBZ, S%polpmeas,  1)
+            S%uppolbin(i) = S%sgn * S%polpmeas
+            call measure_P(S, S%polB, S%polBZ, S%polpmeas, -1)
+            S%dnpolbin(i) = S%sgn * S%polpmeas
+
+
+        endsubroutine measure_pol
 
     
         subroutine measure_den(S, i)
@@ -87,6 +104,43 @@ module measurements_mod
         endsubroutine measure_den
 
 
+        subroutine measure_spindenscorr(S, k)
+            !
+            ! < mx(i)mx(j)> = (del(i, j) - Gup(j, i)) * Gdn(i, j)
+            !               + (del(i, j) - Gdn(j, i)) * Gup(i, j)
+            !
+            !
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: k
+
+            integer :: i, j
+
+            ! spindenscorrbin(i, j, k)
+            ! measurement between sites i and j in bin k
+
+            do j = 1, S%N
+                do i = 1, S%N
+                    S%spindenscorrbin(i, j, k) = S%sgn * ((del(i, j) - S%Gup(j, i)) * S%Gdn(i, j) &
+                                                       +  (del(i, j) - S%Gdn(j, i)) * S%Gup(i, j))
+                enddo
+            enddo
+
+        endsubroutine measure_spindenscorr
+
+
+        integer function del(i, j)
+            integer, intent(in) :: i
+            integer, intent(in) :: j
+
+            if (i .eq. j) then
+                del = 1
+            else
+                del = -1
+            endif
+
+        endfunction del
+
+
         subroutine measure_sgn(S, i)
             !
             ! Fills the ith sgn bin slot with the currently measured value of sgn.
@@ -113,10 +167,19 @@ module measurements_mod
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
 
-            S%sgnbinavgs  (i) = real(sum(S%sgnbin), dp) / S%binsize
-            S%updenbinavgs(i) = vector_avg(S%updenbin, S%binsize) / S%sgnbinavgs(i)
-            S%dndenbinavgs(i) = vector_avg(S%dndenbin, S%binsize) / S%sgnbinavgs(i)
+            integer :: j, k
 
+            S%sgnbinavgs  (i) = real(sum(S%sgnbin), dp) / S%binsize
+            S%updenbinavgs(i) =  vector_avg(S%updenbin, S%binsize) / S%sgnbinavgs(i)
+            S%dndenbinavgs(i) =  vector_avg(S%dndenbin, S%binsize) / S%sgnbinavgs(i)
+            S%uppolbinavgs(i) = zvector_avg(S%uppolbin, S%binsize) / S%sgnbinavgs(i)
+            S%dnpolbinavgs(i) = zvector_avg(S%dnpolbin, S%binsize) / S%sgnbinavgs(i)
+
+            do k = 1, S%N
+                do j = 1, S%N
+                    S%spindenscorrbinavgs(j, k, i) = vector_avg(S%spindenscorrbin(j, k, :), S%binsize) / S%sgnbinavgs(i)
+                enddo
+            enddo
             
         endsubroutine avgbin
 
@@ -128,9 +191,19 @@ module measurements_mod
             !
             type(Simulation), intent(inout) :: S
 
-            call jackknife(S%sgnbinavgs  , S%nbin, S%sgnavg  , S%sgnerr)
-            call jackknife(S%updenbinavgs, S%nbin, S%updenavg, S%updenerr)
-            call jackknife(S%dndenbinavgs, S%nbin, S%dndenavg, S%dndenerr)
+            integer :: i, j
+
+            call  jackknife(S%sgnbinavgs  , S%nbin, S%sgnavg  , S%sgnerr)
+            call  jackknife(S%updenbinavgs, S%nbin, S%updenavg, S%updenerr)
+            call  jackknife(S%dndenbinavgs, S%nbin, S%dndenavg, S%dndenerr)
+            call zjackknife(S%uppolbinavgs, S%nbin, S%uppolavg, S%uppolerr)
+            call zjackknife(S%dnpolbinavgs, S%nbin, S%dnpolavg, S%dnpolerr)
+
+            do i = 1, S%N
+                do j = 1, S%N
+                    call jackknife(S%spindenscorrbinavgs(i, j, :), S%nbin, S%spindenscorravg(i, j), S%spindenscorrerr(i, j))
+                enddo
+            enddo
 
 
         endsubroutine dostatistics

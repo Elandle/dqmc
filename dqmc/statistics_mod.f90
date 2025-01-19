@@ -38,4 +38,35 @@ module statistics_mod
         endsubroutine jackknife
 
 
+        complex(dp) function zvector_avg(x, n)
+            !
+            ! Returns the average of the entries of the length n vector x
+            !
+            complex(dp), intent(in) :: x(n)
+            integer    , intent(in) :: n
+
+            zvector_avg = sum(x) / n
+
+
+        endfunction zvector_avg
+
+
+        subroutine zjackknife(x, n, avg, err)
+            !
+            ! Performs the jackknife method on the entries of the length n vector x.
+            !
+            ! The average obtained by the jackknife method will be stored in avg,
+            ! and the error in err.
+            !
+            complex(dp), intent(in)  :: x(n)
+            integer    , intent(in)  :: n
+            complex(dp), intent(out) :: avg, err
+
+            avg = zvector_avg(x, n)
+            err = sqrt(sum((x - avg) ** 2) / (n*(n-1)))
+
+            
+        endsubroutine zjackknife
+
+
 endmodule statistics_mod

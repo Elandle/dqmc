@@ -129,7 +129,8 @@ module simulate_mod
             !
             type(Simulation), intent(inout) :: S
 
-            integer :: i, j, k
+            integer     :: i, j, k
+            complex(dp) :: a, b, c
 
             print *, S%ntotal, "total sweeps"
             print *, S%nequil, "warmup sweeps"
@@ -186,9 +187,60 @@ module simulate_mod
             print *, "Average sign  = ", S%sgnavg  , "+-", S%sgnerr
             print *, "Average upden = ", S%updenavg, "+-", S%updenerr
             print *, "Average dnden = ", S%dndenavg, "+-", S%dndenerr
+            print *, "Spin density correlation = "
+            ! call print_matrix(S%spindenscorravg)
+            ! print *, "+-"
+            ! call print_matrix(S%spindenscorrerr)
+            ! call abc(S)
+            print *, "Average uppol = ", S%uppolavg, "+-", S%uppolerr
+            print *, "Average dnpol = ", S%dnpolavg, "+-", S%dnpolerr
+            a = -(S%L**2)/(((2*4*atan(1.0_dp))**2)*S%N)
+            b = a * log(S%uppolavg)**2
+            c = abs(2 * a * log(b) / b) * S%uppolerr
+            print *, "Average uplambda^2 = ", b, "+-", c
+            b = a * log(S%dnpolavg)**2
+            c = abs(2 * a * log(b) / b) * S%dnpolerr
+            print *, "Average dnlambda^2 = ", b, "+-", c
 
 
         endsubroutine simulate
+
+        subroutine abc(S)
+            type(Simulation) :: S
+
+            integer :: i, j
+            real(dp) :: sum
+
+            sum = 0.0_dp
+
+            do i = 1, S%N
+                do j = 1, S%N
+                    sum = sum + S%spindenscorravg(i, j) * ( (-1) ** (i+j))
+                enddo
+            enddo
+
+            print *, sum / S%N
+
+
+        endsubroutine abc
+
+        subroutine print_matrix(A)
+            real(dp), intent(in) :: A(:, :)
+            
+            integer :: m, n, i, j
+
+            m = size(A, 1)
+            n = size(A, 2)
+
+            do j = 1, n
+                do i = 1, m
+                    write(*, "(F12.6)", advance="no") A(i, j)
+                enddo
+                write(*, *) ""
+            enddo
+
+
+        endsubroutine print_matrix
 
 
         integer function sgn(x)

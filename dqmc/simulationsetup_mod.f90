@@ -1,5 +1,6 @@
 module simulationsetup_mod
     use numbertypes
+    use readinputfile_mod
     use checkerboard_mod
     use convenientla_mod
     implicit none
@@ -110,6 +111,25 @@ module simulationsetup_mod
         real(dp)              :: dndenavg        ! avg real number for dn spin density measurements
         real(dp)              :: dndenerr        ! err real number for dn spin density measurements
 
+        real(dp), allocatable :: spindenscorrbin(:, :, :)     ! (N x N x binsize)
+        real(dp), allocatable :: spindenscorrbinavgs(:, :, :) ! (N x N x nbin)
+        real(dp), allocatable :: spindenscorravg(:, :)        ! (N x N)
+        real(dp), allocatable :: spindenscorrerr(:, :)        ! (N x N)
+
+        complex(dp), allocatable :: polP(:)                   ! (N)
+        real   (dp), allocatable :: polB(:, :)                ! (N x N)
+        complex(dp), allocatable :: polBZ(:, :)               ! (N x N)
+        complex(dp)              :: polpmeas
+
+        complex(dp), allocatable :: uppolbin(:)               ! (binsize)
+        complex(dp), allocatable :: dnpolbin(:)               ! (binsize)
+        complex(dp), allocatable :: uppolbinavgs(:)           ! (nbin)
+        complex(dp), allocatable :: dnpolbinavgs(:)           ! (nbin)
+        complex(dp)              :: uppolavg
+        complex(dp)              :: dnpolavg
+        complex(dp)              :: uppolerr
+        complex(dp)              :: dnpolerr
+
         ! Used only when using bmult_mod instead of bmultexact_mod.
         ! That is, when B matrices are multiplied by using the approximate matrix exponential
         ! by the checkerboard method instead of the exact matrix exponential
@@ -152,7 +172,7 @@ module simulationsetup_mod
         real(dp)          , intent(in)    :: dtau
         real(dp)          , intent(in)    :: U
         real(dp)          , intent(in)    :: mu
-        character(len=100), intent(in)    :: ckbfilename
+        character(len=*)  , intent(in)    :: ckbfilename
 
 
         S%N          = N
@@ -211,6 +231,21 @@ module simulationsetup_mod
         allocate(S%dndenbin(S%binsize))
         allocate(S%dndenbinavgs(nbin))
 
+        allocate(S%spindenscorrbin(N, N, S%binsize))
+        allocate(S%spindenscorrbinavgs(N, N, nbin))
+        allocate(S%spindenscorravg(N, N))
+        allocate(S%spindenscorrerr(N, N))
+
+        allocate(S%polP(N))
+        allocate(S%polB(N, N))
+        allocate(S%polBZ(N, N))
+        call make_P(S%polP, L, N, int(sqrt(real(N, dp))))
+
+        allocate(S%uppolbin(S%binsize))
+        allocate(S%dnpolbin(S%binsize))
+        allocate(S%uppolbinavgs(S%nbin))
+        allocate(S%dnpolbinavgs(S%nbin))
+
         call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
         call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
 
@@ -236,6 +271,73 @@ module simulationsetup_mod
 
 
     endsubroutine setup_simulation
+
+
+    subroutine make_P(P, L, N, x)
+        !
+        ! Sets:
+        !
+        !       P = exp(2*pi*i/L) * P
+        !
+        ! where the P on the right-hand side of assignment is the geometry-dependent
+        ! polarization (diagonal) matrix (stored as a vector) P.
+        !
+        ! Currently hardcoded for a square lattice with x sites in the x direction
+        ! (number of sites in the y direction is not needed)
+        !
+        complex(dp), intent(out) :: P(N)
+        integer    , intent(in)  :: L
+        integer    , intent(in)  :: N
+        integer    , intent(in)  :: x
+
+        integer  :: i
+        integer  :: z
+        real(dp) :: pi
+
+
+        z = -1
+        do i = 1, N
+            z = z + 1
+            z = mod(z, x)
+            P(i) = complex(real(z, dp), 0.0_dp)
+            print *, i, P(i)
+        enddo
+        print *, P
+
+        pi = 4 * atan(1.0_dp)
+        P  = exp(complex(2.0_dp * pi / L, 0.0_dp)) * P
+
+
+    endsubroutine make_P
+
+
+    subroutine setup_simulation_input(S, fname, funit, ounit)
+        type(Simulation), intent(inout) :: S
+        character(len=*), intent(in)    :: fname
+        integer         , intent(out)   :: funit
+        integer         , intent(in)    :: ounit
+
+        type(parameter_values) :: param_values
+        type(parameter_set)    :: param_set
+
+        call readinputfile(fname, funit, ounit, param_values, param_set)
+        call printparams(param_values, ounit)
+        call setup_simulation(S,                        &
+                              param_values%N,           &
+                              param_values%L,           &
+                              param_values%nstab,       &
+                              param_values%north,       &
+                              param_values%nbin,        &
+                              param_values%nmeassweep,  &
+                              param_values%nskip,       &
+                              param_values%nequil,      &
+                              param_values%dtau,        &
+                              param_values%U,           &
+                              param_values%mu,          &
+                              param_values%ckbfilename)
+
+
+    endsubroutine setup_simulation_input
 
 
 endmodule simulationsetup_mod

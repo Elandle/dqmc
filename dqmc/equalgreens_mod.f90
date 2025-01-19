@@ -52,6 +52,47 @@ module equalgreens_mod
             ! The ratio of weights R(up/dn) and factor delta(up/dn)
             ! are assumed to be calculated beforehand and stored in S
             !
+            ! This is the rank k update algorithm (fast update algorithm) 
+            ! for flipping a spin in the Hubbard model. In this DQMC,
+            ! flipping h(i, l) --> -h(i, l) only has 1 nonzero entry in
+            ! the delta updating matrix, so k = 1.
+            !
+            ! Mathematically, G is updated according to:
+            !
+            ! G = G + U * S * V
+            !
+            ! where:
+            !
+            ! U = G(:, i)                                                                    N   x (k=1)
+            ! S = delta(i, i) * inv(T)  (k=1) x (k=1)  * (k=1) x (k=1)                 --> (k=1) x (k=1)
+            ! T = id + Y * delta(i, i)  (k=1) x (k=1)  + (k=1) x (k=1) * (k=1) x (k=1) --> (k=1) x (k=1)
+            ! V = (G(:, i) - ei) ** T      (N x (k=1)) **  T                           --> (k=1) x   N
+            !
+            ! Expanded out:
+            !
+            ! U = G(:, i)
+            ! S = delta(i, i) * [1 - delta(i, i) * (G(i, i) - 1)]^-1
+            !   = delta(i, i) / [1 - delta(i, i) * (G(i, i) - 1)]
+            ! V = (G(i, :) - ei) ** T
+            !
+            ! Multiplied together:
+            !
+            ! U * S * V = [delta(i, i) / [1 - delta(i, i) * (G(i, i) - 1)]] * G(:, i) * (G(i, :) - ei) **T
+            !           = x * outer(G(:, i), G(i, :) - ei)
+            !
+            ! where:
+            !
+            ! x = delta(i, i) / [1 - delta(i, i) * (G(i, i) - 1)]
+            !   = delta(i, i) / [1 + (1 - G(i, i)) * delta(i, i)]
+            !   = delta       / R
+            !
+            ! where, for this Hubbard model:
+            !
+            ! R     = 1 + (1 - G(i, i)) * delta
+            ! delta = delta(i, i) = exp(-2 * sigma * alpha * h(i, l)) - 1
+            !
+            ! R being the Metropolis weight of accepting the flip h(i, l) --> -h(i, l)
+            !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
             integer         , intent(in)    :: sigma
