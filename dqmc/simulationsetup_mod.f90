@@ -285,27 +285,60 @@ module simulationsetup_mod
         ! Currently hardcoded for a square lattice with x sites in the x direction
         ! (number of sites in the y direction is not needed)
         !
+        !
+        ! max = x / 2 (floored half)
+        !
+        ! For even x, site distances have the pattern (example for x=6):
+        !
+        ! 1 --- 2 --- 3 --- 4 --- 5 --- 6
+        ! 0     1     2     3     2     1
+        !
+        !
+        ! For odd x, site distances have the pattern (example for x=7):
+        !
+        ! 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7
+        ! 0     1     2     3     3     2     1
+        !
         complex(dp), intent(out) :: P(N)
         integer    , intent(in)  :: L
         integer    , intent(in)  :: N
         integer    , intent(in)  :: x
 
-        integer  :: i
-        integer  :: z
+        integer  :: i, j, inc, max, min
+        logical  :: odd
         real(dp) :: pi
 
+        if (mod(x, 2) .eq. 0) then
+            odd = .false.
+        else
+            odd = .true.
+        endif
 
-        z = -1
-        do i = 1, N
-            z = z + 1
-            z = mod(z, x)
-            P(i) = complex(real(z, dp), 0.0_dp)
-            print *, i, P(i)
+        max = x / 2
+        min = 0
+        inc = -1
+        j   = min
+        i   = 1
+        do
+            P(i) = complex(real(j, dp), 0.0_dp)
+            if (odd .and. (j .eq. max)) then
+                i = i + 1
+                P(i) = P(i-1)
+            endif
+            if ((j .eq. max) .and. (inc .eq. 1)) then
+                inc = -1
+            elseif ((j .eq. min) .and. (inc .eq. -1)) then
+                inc = 1
+            endif
+            j = j + inc
+            if (i .eq. N) then
+                exit
+            endif
+            i = i + 1
         enddo
-        print *, P
 
         pi = 4 * atan(1.0_dp)
-        P  = exp(complex(2.0_dp * pi / L, 0.0_dp)) * P
+        P  = exp(complex(0.0_dp, 2.0_dp * pi / L)) * P
 
 
     endsubroutine make_P
