@@ -1,7 +1,7 @@
 N = 16
 L = 40
-nstab = 1
-north = 1
+nstab = 4
+north = 4
 nbin = 4
 nmeassweep = 200
 nskip = 5

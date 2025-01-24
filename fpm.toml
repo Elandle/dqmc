@@ -7,8 +7,7 @@ auto-executables = true
 auto-tests = true
 auto-examples = true
 
-[fortran]
-implicit-external = true
+
 
 [install]
 library = false

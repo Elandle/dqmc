@@ -43,7 +43,7 @@ module polarization_mod
         endsubroutine P_mult
 
 
-        subroutine newB(S, l, sigma, B)
+        subroutine newBold(S, l, sigma, B)
             !
             ! newB and newB2 do not agree.... needs fixing
             !
@@ -160,6 +160,136 @@ module polarization_mod
 
             ! T = Q * T
             call dormqr('L', 'N', S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdT, S%N, S%qrdwork, S%qrdlwork, S%info)
+
+            ! B = T
+            call copy_matrix(S%qrdT, B, S%N)
+
+
+        endsubroutine newBold
+
+
+        subroutine newB(S, l, sigma, B)
+            !(A, S, N, L, north, getj, make_B, left_Bmult, &
+            !              Q, P, Pinv, tau, work, lwork, D, F, T, matwork, R)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: l
+            integer         , intent(in)    :: sigma
+            real(dp)        , intent(out)   :: B(S%N, S%N)
+
+            integer :: j ! B matrix counter
+            integer :: i ! north counter
+            integer :: info
+
+
+            ! Iteration j = 1
+            j = 1
+
+            ! Q = B(l)
+            call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
+                    
+            if (j .lt. S%north) then
+                do j = j+1, S%north
+                    call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                enddo
+            endif
+            j = S%north
+
+            ! QRP factorise Q
+            S%qrdP = 0
+            call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+            ! D = diag(Q)
+            call diag(S%qrdQ, S%qrdD, S%N)
+
+            ! T = uppertri(Q)
+            call uppertri(S%qrdQ, S%qrdT, S%N)
+            ! T = inv(D) * T
+            call left_diaginvmult(S%qrdT, S%qrdD, S%N)
+            ! T = T * inv(P)
+            S%qrdI = S%qrdP
+            call invert_permutation(S%qrdI, S%N)
+            call permute_matrix_columns(S%qrdT, S%N, S%qrdP, S%qrdI)
+
+            ! Q = full Q (from previous iteration QRP factorisation)
+            call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+            do
+                if (j .eq. S%L) then
+                    exit
+                else
+                    i = 0
+                    do
+                        if (i .eq. S%north .or. j .eq. S%L) then
+                            ! Q = Q * D (D from previous iteration)
+                            call right_diagmult(S%qrdQ, S%qrdD, S%N)
+
+                            ! QRP factorise Q
+                            S%qrdP = 0
+                            call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+                            ! D = diag(Q)
+                            call diag(S%qrdQ, S%qrdD, S%N)
+
+                            ! R = uppertri(Q)
+                            call uppertri(S%qrdQ, S%qrdR, S%N)
+
+                            ! R = inv(D) * R
+                            call left_diaginvmult(S%qrdR, S%qrdD, S%N)
+
+                            ! T = T * inv(P)
+                            S%qrdI = S%qrdP
+                            call invert_permutation(S%qrdI, S%N)
+                            call permute_matrix_rows(S%qrdT, S%N, S%qrdI, S%qrdP)
+            
+                            ! T = R * T
+                            call dtrmm('l', 'u', 'n', 'n', S%N, S%N, 1.0_dp, S%qrdR, S%N, S%qrdT, S%N)
+
+                            ! Q = full Q (from previous iteration QRP factorisation)
+                            call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+                            exit
+                        else
+                            j = j + 1
+                            i = i + 1
+                            call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                        endif
+                    enddo
+                endif
+            enddo
+            !
+            ! Now:
+            !
+            !       B = Q * D * T
+            !
+            ! Now to carry out these multiplications to compute B
+            !
+            ! Note, from the previous iteration:
+            !
+            !       Q stored in S%qrD
+            !       D (diagonal matrix) stored in the vector S%qrdD
+            !       T stored in S%qrdT
+            !
+
+            !
+            ! TODO: rewrite subroutine just for making B (not adapted),
+            !       notably make S%qrdT be B instead (avoid a copy)
+            !
+            !       think about reordering matrix products
+            !
+            !       B is needed to compute:
+            !
+            !           det(id + B)
+            !           det(id + B * P)
+            !   
+            !       think if these can be done faster or more stably
+            !
+
+            ! T = D * T
+            ! would it be better to multiply by R on the right instead of left?
+            call left_diagmult(S%qrdT, S%qrdD, S%N)
+
+            ! T = Q * T
+            call left_matmul(S%qrdT, S%qrdQ, S%N, S%qrdR)
 
             ! B = T
             call copy_matrix(S%qrdT, B, S%N)
