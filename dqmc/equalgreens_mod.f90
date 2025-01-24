@@ -247,7 +247,135 @@ module equalgreens_mod
         endsubroutine timeupdate
 
 
+
         subroutine newG(S, l, sigma)
+            !(A, S, N, L, north, getj, make_B, left_Bmult, &
+            !              Q, P, Pinv, tau, work, lwork, D, F, T, matwork, R)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: l
+            integer         , intent(in)    :: sigma
+
+            integer :: j ! B matrix counter
+            integer :: i ! north counter
+            integer :: info
+
+
+            ! Iteration j = 1
+            j = 1
+
+            ! Q = B(l)
+            call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
+                    
+            if (j .lt. S%north) then
+                do j = j+1, S%north
+                    call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                enddo
+            endif
+            j = S%north
+
+            ! QRP factorise Q
+            S%qrdP = 0
+            call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+            ! D = diag(Q)
+            call diag(S%qrdQ, S%qrdD, S%N)
+
+            ! T = uppertri(Q)
+            call uppertri(S%qrdQ, S%qrdT, S%N)
+            ! T = inv(D) * T
+            call left_diaginvmult(S%qrdT, S%qrdD, S%N)
+            ! T = T * inv(P)
+            S%qrdI = S%qrdP
+            call invert_permutation(S%qrdI, S%N)
+            call permute_matrix_columns(S%qrdT, S%N, S%qrdP, S%qrdI)
+
+            ! Q = full Q (from previous iteration QRP factorisation)
+            call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+            do
+                if (j .eq. S%L) then
+                    exit
+                else
+                    i = 0
+                    do
+                        if (i .eq. S%north .or. j .eq. S%L) then
+                            ! Q = Q * D (D from previous iteration)
+                            call right_diagmult(S%qrdQ, S%qrdD, S%N)
+
+                            ! QRP factorise Q
+                            S%qrdP = 0
+                            call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+                            ! D = diag(Q)
+                            call diag(S%qrdQ, S%qrdD, S%N)
+
+                            ! R = uppertri(Q)
+                            call uppertri(S%qrdQ, S%qrdR, S%N)
+
+                            ! R = inv(D) * R
+                            call left_diaginvmult(S%qrdR, S%qrdD, S%N)
+
+                            ! T = T * inv(P)
+                            S%qrdI = S%qrdP
+                            call invert_permutation(S%qrdI, S%N)
+                            call permute_matrix_rows(S%qrdT, S%N, S%qrdI, S%qrdP)
+            
+                            ! T = R * T
+                            call dtrmm('l', 'u', 'n', 'n', S%N, S%N, 1.0_dp, S%qrdR, S%N, S%qrdT, S%N)
+
+                            ! Q = full Q (from previous iteration QRP factorisation)
+                            call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
+
+                            exit
+                        else
+                            j = j + 1
+                            i = i + 1
+                            call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                        endif
+                    enddo
+                endif
+            enddo
+
+            ! Now to finish calculating G
+
+            ! D(L) = Db * Ds decomposition, see ASvQRD algorithm
+            ! D = Db, F = Ds
+            call DbDs(S%qrdD, S%qrdF, S%N)
+
+            ! B = trans(Q)
+             call trans(S%qrdB, S%qrdQ, S%N)
+            ! B = inv(Db) * B
+            call left_diaginvmult(S%qrdB, S%qrdD, S%N)
+
+            ! T = Ds * T                  
+            call left_diagmult(S%qrdT, S%qrdF, S%N)       
+            ! T = T + B                                                
+            call add_matrix(S%qrdT, S%qrdB, S%N)
+            ! T = inv(T)
+            call invert(S%qrdT, S%N, S%invP, S%invwork, S%invlwork, S%info)  
+
+            ! G = T * B
+            if (sigma .eq. 1) then ! sigma =  1 --> Gup
+                call dgemm('n', 'n', S%N, S%N, S%N, 1.0_dp, S%qrdT, S%N, S%qrdB, S%N, 0.0_dp, S%Gup, S%N)   
+            else                   ! sigma = -1 --> Gdn
+                call dgemm('n', 'n', S%N, S%N, S%N, 1.0_dp, S%qrdT, S%N, S%qrdB, S%N, 0.0_dp, S%Gdn, S%N)
+            endif
+
+        endsubroutine newG
+
+
+
+
+
+
+
+
+
+
+
+
+        ! Up for deletion
+        subroutine newG_old(S, l, sigma)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
@@ -332,7 +460,7 @@ module equalgreens_mod
             endif
 
 
-        endsubroutine newG
+        endsubroutine newG_old
 
 
         function getj(i, N, l) result(j)

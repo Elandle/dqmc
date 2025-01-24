@@ -52,14 +52,14 @@ module customla_mod
             ! For some reason, it seems only some BLAS/LAPACK distributions contain the
             ! dlascl2 subroutine
 
-            call dlascl2(n, n, D, A, n)
+            ! call dlascl2(n, n, D, A, n)
 
             ! SECOND BEST
             ! Alternative BLAS:
-            ! integer :: i
-            ! do i = 1, n
-            !     call dscal(n, D(i), A(i, 1), n)
-            ! enddo
+            integer :: i
+            do i = 1, n
+                call dscal(n, D(i), A(i, 1), n)
+            enddo
 
             ! THIRD BEST
             ! No BLAS:
@@ -118,14 +118,14 @@ module customla_mod
             ! dlarscl2 subroutine
 
             ! BEST
-            call dlarscl2(n, n, D, A, n)
+            ! call dlarscl2(n, n, D, A, n)
 
             ! SECOND BEST
             ! Alternative BLAS:
-            ! integer :: i
-            ! do i = 1, n
-            !     call dscal(n, 1.0_dp / D(i), A(i, 1), n)
-            ! enddo
+            integer :: i
+            do i = 1, n
+                call dscal(n, 1.0_dp / D(i), A(i, 1), n)
+            enddo
 
             ! THIRD BEST
             ! No BLAS:
@@ -189,7 +189,13 @@ module customla_mod
         endsubroutine uppertri
 
 
-        subroutine invert_permutation(P, I, n)
+        ! TODO:
+        ! Compare the two permutation routines
+        ! Get rid of gotos in second permutation routine
+        ! Better routine?
+
+
+        subroutine invert_permutation_old(P, I, n)
             !
             ! Sets:
             !
@@ -211,7 +217,62 @@ module customla_mod
             ! I(P) = [(j, j = 1, n)]
 
 
+        endsubroutine invert_permutation_old
+
+
+        subroutine invert_permutation(P, n)
+            ! Knuth, The Art of Computer Programming, Volume 1
+            ! Section 1.3.3, algorithm I
+            integer, intent(inout) :: P(n)
+            integer, intent(in)    :: n
+
+            integer :: m, j, i
+
+            ! I1
+            m = n
+            j = -1
+
+            ! I2
+20          i = P(m)
+            if (i .lt. 0) then
+                goto 50
+            endif
+
+            ! I3
+30          P(m) = j
+            j = -m
+            m = i
+            i = P(m)
+
+            ! I4
+            if (i .gt. 0) then
+                goto 30
+            else
+                i = j
+            endif
+
+            ! I5
+50          P(m) = -i
+
+            ! I6
+            m = m - 1
+            if (m .gt. 0) then
+                goto 20
+            endif
+
+
         endsubroutine invert_permutation
+
+
+
+
+
+
+
+
+
+
+
 
 
         subroutine permutecols(A, P, n)
@@ -264,6 +325,201 @@ module customla_mod
 
 
         endsubroutine permutecols
+
+
+        ! These following permutation algorithms are all based off the same underlying algorithm
+        ! TODO:
+        ! Find an inplace permutation algorithm that doesn't need an inverse permutation
+
+
+        subroutine permute_matrix_columns(A, m, P, Pinv)
+            real(dp), intent(inout) :: A(m, m)
+            integer , intent(in)    :: m
+            integer , intent(inout) :: P(m)
+            integer , intent(inout) :: Pinv(m)
+
+            integer :: i, j, k
+
+            do i = 1, m
+                j = P(i)
+                if (j .ne. i) then
+                    k = Pinv(i)
+                    do
+                        if (i .lt. j .and. i .lt. k) then
+                            if (j .eq. k) then
+                                call rotate_matrix_columns(P, i, A, m)
+                                exit
+                            endif
+                            j = P(j)
+                            if (j .eq. k) then
+                                call rotate_matrix_columns(P, i, A, m)
+                                exit
+                            endif
+                            k = Pinv(k)
+                        else
+                            exit
+                        endif
+                    enddo
+                endif
+            enddo
+
+
+        endsubroutine permute_matrix_columns
+
+        subroutine permute_matrix_rows(A, m, P, Pinv)
+            real(dp), intent(inout) :: A(m, m)
+            integer , intent(in)    :: m
+            integer , intent(inout) :: P(m)
+            integer , intent(inout) :: Pinv(m)
+
+            integer :: i, j, k
+
+            do i = 1, m
+                j = P(i)
+                if (j .ne. i) then
+                    k = Pinv(i)
+                    do
+                        if (i .lt. j .and. i .lt. k) then
+                            if (j .eq. k) then
+                                call rotate_matrix_rows(P, i, A, m)
+                                exit
+                            endif
+                            j = P(j)
+                            if (j .eq. k) then
+                                call rotate_matrix_rows(P, i, A, m)
+                                exit
+                            endif
+                            k = Pinv(k)
+                        else
+                            exit
+                        endif
+                    enddo
+                endif
+            enddo
+
+
+        endsubroutine permute_matrix_rows
+
+        subroutine rotate_matrix_columns(P, leader, A, m)
+            ! Part of permute
+            integer , intent(inout) :: P(m)
+            integer , intent(in)    :: leader
+            real(dp), intent(inout) :: A(m, m)
+            integer , intent(in)    :: m
+
+            integer :: i
+
+            i = P(leader)
+            do
+                if (i .eq. leader) then
+                    exit
+                else
+                    call dswap(m, A(1, i), 1, A(1, leader), 1)
+                    i = P(i)
+                endif
+            enddo
+
+        endsubroutine rotate_matrix_columns
+
+
+        subroutine rotate_matrix_rows(P, leader, A, m)
+            ! Part of permute
+            integer , intent(inout) :: P(m)
+            integer , intent(in)    :: leader
+            real(dp), intent(inout) :: A(m, m)
+            integer , intent(in)    :: m
+
+            integer :: i
+
+            i = P(leader)
+            do
+                if (i .eq. leader) then
+                    exit
+                else
+                    call dswap(m, A(i, 1), m, A(leader, 1), m)
+                    i = P(i)
+                endif
+            enddo
+
+        endsubroutine rotate_matrix_rows
+
+
+
+
+        subroutine permute(P, Pinv, x, m)
+            ! Fich, Munro, and Poblete
+            ! Permuting in Place
+            ! Figure 5
+            integer , intent(inout) :: P(m)
+            integer , intent(inout) :: Pinv(m)
+            real(dp), intent(inout) :: x(m)
+            integer , intent(in)    :: m
+
+            integer :: i, j, k
+
+            do i = 1, m
+                j = P(i)
+                if (j .ne. i) then
+                    k = Pinv(i)
+                    do
+                        if (i .lt. j .and. i .lt. k) then
+                            if (j .eq. k) then
+                                call rotate(P, i, x)
+                                exit
+                            endif
+                            j = P(j)
+                            if (j .eq. k) then
+                                call rotate(P, i, x)
+                                exit
+                            endif
+                            k = Pinv(k)
+                        else
+                            exit
+                        endif
+                    enddo
+                endif
+            enddo
+
+
+        endsubroutine permute
+
+        subroutine rotate(P, leader, x)
+            ! Part of permute
+            integer , intent(inout) :: P(:)
+            integer , intent(in)    :: leader
+            real(dp), intent(inout) :: x(:)
+
+            integer :: i
+
+            i = P(leader)
+            do
+                if (i .eq. leader) then
+                    exit
+                else
+                    call swap(x, i, leader)
+                    i = P(i)
+                endif
+            enddo
+
+        endsubroutine rotate
+
+        subroutine swap(x, i, j)
+            real(dp), intent(inout) :: x(:)
+            integer , intent(in)    :: i
+            integer , intent(in)    :: j
+
+            real(dp) :: temp
+
+            temp = x(i)
+            x(i) = x(j)
+            x(j) = temp
+
+        endsubroutine swap
+
+
+
+
+
 
 
         subroutine invert(A, n, P, work, lwork, info)
