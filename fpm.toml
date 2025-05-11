@@ -6,7 +6,7 @@ name = "dqmc"
 auto-executables = true
 auto-tests = true
 auto-examples = true
-
+link=["blas", "lapack"]
 
 
 [install]
@@ -16,4 +16,4 @@ library = false
 name="main"
 source-dir="dqmc"
 main="main.f90"
-link=["blas", "lapack"]
+

@@ -5,6 +5,7 @@ module simulate_mod
     use metropolisratios_mod
     use measurements_mod
     use statistics_mod
+    use iso_fortran_env, only: output_unit
     implicit none
     !
     ! Contains procedures for carrying out a DQMC simulation in full,
@@ -47,6 +48,10 @@ module simulate_mod
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
 
+            ! Present for debugging ---
+            real(dp) :: wr(S%N), wi(S%N)
+            ! -------------------------
+
             integer :: i
 
             ! Sweep through sites at a fixed imaginary time
@@ -54,8 +59,14 @@ module simulate_mod
                 ! Proposal: flip h(i, l)
 
                 ! Calculating the acceptance probability R of that flip
-                call greens_R(S, i, l, 1)
-                call greens_R(S, i, l, -1)
+                ! Use one of the following:
+                ! 1. From the Green's function (fast)
+                ! call greens_R(S, i, l, 1)
+                ! call greens_R(S, i, l, -1)
+                ! 2. From the definition (slow)
+                call scratch_R(S, i, l, 1)
+                call scratch_R(S, i, l, -1)
+
                 S%upsgn = sgn(S%Rup)
                 S%dnsgn = sgn(S%Rdn)
                 S%sgn   = S%upsgn * S%dnsgn
@@ -72,12 +83,37 @@ module simulate_mod
                     S%h(i, l) = -S%h(i, l)
 
                     ! Update Green's functions
-                    call flipupdate(S, i, 1)
-                    call flipupdate(S, i, -1)
+                    ! Use one of the following:
+                    ! 1. Rank one update (fast)
+                    ! call flipupdate(S, i, 1)
+                    ! call flipupdate(S, i, -1)
+                    ! 2. Make from scratch (slow)
+                    call newG(S, l,  1)
+                    call newG(S, l, -1)
 
                 else
                     ! Reject the flip
                 endif
+
+                ! Present for debugging ---------
+                write(S%dunit, "(a, i5, i5)") "Slice l, site i = ", l, i
+                write(S%dunit, "(a)")     "Gup = "
+                call print_matrix(S%Gup, S%dunit)
+                call eigenvalues(S%Gup, wr, wi)
+                write(S%dunit, "(a)") "Gup wr = "
+                call print_vector(wr, S%dunit)
+                write(S%dunit, "(a)") "Gup wi = "
+                call print_vector(wi, S%dunit)
+
+                write(S%dunit, "(a)")     "Gdn = "
+                call print_matrix(S%Gdn, S%dunit)
+                call eigenvalues(S%Gdn, wr, wi)
+                write(S%dunit, "(a)") "Gdn wr = "
+                call print_vector(wr, S%dunit)
+                write(S%dunit, "(a)") "Gdn wi = "
+                call print_vector(wi, S%dunit)
+                ! -------------------------------
+
             enddo
 
 
@@ -97,7 +133,8 @@ module simulate_mod
 
             ! l = 1 imaginary time sweep:
             l = 1
-            print *, "Warmup sweep ", 1, "..."
+            write(output_unit, "(a, i5, a)") "Warmup sweep ", 1, "..."
+            write(S%dunit    , "(a, i5, a)") "Warmup sweep ", 1, "..."
             call newG(S, l, 1)
             call newG(S, l, -1)
             call sweepslice(S, l)
@@ -115,7 +152,8 @@ module simulate_mod
             enddo
 
             do i = 2, S%nequil
-                print *, "Warmup sweep ", i, "..."
+                write(output_unit, "(a, i5, a)") "Warmup sweep ", i, "..."
+                write(S%dunit    , "(a, i5, a)") "Warmup sweep ", i, "..."
                 call sweep(S)
             enddo
 
@@ -132,16 +170,38 @@ module simulate_mod
             integer     :: i, j, k
             complex(dp) :: a, b, c
 
-            print *, S%ntotal, "total sweeps"
-            print *, S%nequil, "warmup sweeps"
-            print *, (S%nskip + 1) * S%binsize, "sweeps per bin (approximately)"
-            print *, S%nbin, "bins"
+            write(S%dunit, "(a, f17.8)") "Chemical potential mu    = ", S%mu
+            write(S%dunit, "(a, f17.8)") "Time discritization dtau = ", S%dtau
+            write(S%dunit, "(a, i5)")    "Imaginary time steps L   = ", S%L
+            write(S%dunit, "(a, f17.8)") "beta = L * dtau          = ", S%beta
+            write(S%dunit, "(a)") "Hopping matrix T = "
+            call print_matrix(S%T, S%dunit)
+            write(S%dunit, "(a)") "Hoppings:"
+            write(S%dunit, "(a)") "i, j, T(i, j)"
+            do i = 1, S%N
+                do j = 1, S%N
+                    if (abs(S%T(i, j)) .ge. 10e-4) then
+                        write(S%dunit, "(i5, a, i5, f17.8)") i, " , ", j, S%T(i, j)
+                    endif
+                enddo
+            enddo
+
+            write(output_unit, "(i5, a)") S%ntotal, " Total  sweeps"
+            write(output_unit, "(i5, a)") S%nequil, " Warmup sweeps"
+            write(output_unit, "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
+            write(output_unit, "(i5, a)") S%nbin, " Bins"
+            write(S%dunit    , "(i5, a)") S%ntotal, " Total  sweeps"
+            write(S%dunit    , "(i5, a)") S%nequil, " Warmup sweeps"
+            write(S%dunit    , "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
+            write(S%dunit    , "(i5, a)") S%nbin, " Bins"
+
             ! Warmup
             call warmup(S)
 
 
             ! First measurement sweep right after warmup
-            print *, "Bin ", 1, "measured sweep ", 1, "..."
+            write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
+            write(S%dunit    , "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
             call sweep(S)
             call measure(S, 1)
             
@@ -150,11 +210,13 @@ module simulate_mod
             do i = 2, S%binsize
                 do j = 1, S%nskip
                     ! Nonmeasured sweeps
-                    print *, "Bin ", 1, "nonmeasured sweep ", j, "..."
+                    write(output_unit, "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
+                    write(S%dunit    , "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
                     call sweep(S)
                 enddo
                 ! Measurement sweep
-                print *, "Bin ", 1, "measured sweep...", i, "..."
+                write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
+                write(S%dunit    , "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
                 call sweep(S)
                 call measure(S, i)
             enddo
@@ -166,11 +228,13 @@ module simulate_mod
                 do i = 1, S%binsize
                     do j = 1, S%nskip
                         ! Nonmeasured sweeps
-                        print *, "Bin ", k, "nonmeasured sweep ", j, "..."
+                        write(output_unit, "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
+                        write(S%dunit    , "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
                         call sweep(S)
                     enddo
                     ! Measurement sweep
-                    print *, "Bin ", k, "measured sweep ", i, "..."
+                    write(output_unit, "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
+                    write(S%dunit    , "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
                     call sweep(S)
                     call measure(S, i)
                 enddo
@@ -184,24 +248,42 @@ module simulate_mod
 
             ! Output results
             ! call output
-            print *, "Average sign  = ", S%sgnavg  , "+-", S%sgnerr
-            print *, "Average upden = ", S%updenavg, "+-", S%updenerr
-            print *, "Average dnden = ", S%dndenavg, "+-", S%dndenerr
-            print *, "Spin density correlation = "
-            ! call print_matrix(S%spindenscorravg)
-            ! print *, "+-"
-            ! call print_matrix(S%spindenscorrerr)
-            ! call abc(S)
-            print *, "Average uppol = ", S%uppolavg, "+-", S%uppolerr
-            print *, "Average dnpol = ", S%dnpolavg, "+-", S%dnpolerr
+
+            open(newunit=S%ounit, file=S%outfilename, action="write", status="replace")
+
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average sign                    = ", S%sgnavg      , " +- ", S%sgnerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average upden                   = ", S%updenavg    , " +- ", S%updenerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average dnden                   = ", S%dndenavg    , " +- ", S%dndenerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average KE                      = ", S%kineticavg  , " +- ", S%kineticerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average PE                      = ", S%potentialavg, " +- ", S%potentialerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average E                       = ", S%energyavg   , " +- ", S%energyerr
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uppol                   = ", S%uppolavg    , " +- ", S%uppolerr
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnpol                   = ", S%dnpolavg    , " +- ", S%dnpolerr
             a = -(S%L**2)/(((2*4*atan(1.0_dp))**2)*S%N)
             b = a * log(S%uppolavg)**2
             c = abs(2 * a * log(b) / b) * S%uppolerr
-            print *, "Average uplambda^2 = ", b, "+-", c
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uplambda^2              = ", b, " +- ", c
             b = a * log(S%dnpolavg)**2
             c = abs(2 * a * log(b) / b) * S%dnpolerr
-            print *, "Average dnlambda^2 = ", b, "+-", c
-
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnlambda^2              = ", b, " +- ", c
+            write(S%ounit, "(a)")                    "Spin density correlation        = "
+            call print_matrix(S%spindenscorravg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_matrix(S%spindenscorrerr, S%ounit)
+            ! call abc(S)
+            write(S%ounit, "(a)")                    "Average upden (full)            = "
+            call print_vector(S%updenfullavg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_vector(S%updenfullerr, S%ounit)
+            write(S%ounit, "(a)")                    "Average dnden (full)            = "
+            call print_vector(S%dndenfullavg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_vector(S%dndenfullerr, S%ounit)
+            write(S%ounit, "(a)")                    "Average double occupancy (full) = "
+            call print_vector(S%doubleoccfullavg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_vector(S%doubleoccfullerr, S%ounit)
+            
 
         endsubroutine simulate
 
@@ -219,28 +301,46 @@ module simulate_mod
                 enddo
             enddo
 
-            print *, sum / S%N
+            write(output_unit, "(f17.8)") sum / S%N
 
 
         endsubroutine abc
 
-        subroutine print_matrix(A)
+        subroutine print_matrix(A, ounit)
             real(dp), intent(in) :: A(:, :)
+            integer , intent(in) :: ounit
             
             integer :: m, n, i, j
 
             m = size(A, 1)
             n = size(A, 2)
 
-            do j = 1, n
-                do i = 1, m
-                    write(*, "(F12.6)", advance="no") A(i, j)
+            do i = 1, n
+                do j = 1, m
+                    write(ounit, "(f17.8)", advance="no") A(i, j)
                 enddo
-                write(*, *) ""
+                write(ounit, "(a)") ""
             enddo
 
 
         endsubroutine print_matrix
+
+
+        subroutine print_vector(v, ounit)
+            real(dp), intent(in) :: v(:)
+            integer , intent(in) :: ounit
+
+            integer :: i, m
+
+            m = size(v, 1)
+
+            do i = 1, m
+                write(ounit, "(f17.8)", advance="no") v(i)
+            enddo
+            write(ounit, "(a)") ""
+
+
+        endsubroutine print_vector
 
 
         integer function sgn(x)

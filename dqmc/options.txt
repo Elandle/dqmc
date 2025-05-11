@@ -1,0 +1,19 @@
+Exact B matrix multiplication              on
+(usual: checkerboard)
+
+New Green's function each imaginary time   on
+(usual: wrapping by B matrices)
+
+Metropolis ratio from scratch              on
+(usual: from Green's functions)
+
+Flip update from scratch                   on
+(usual: O(N^2) outer product)
+
+
+
+
+
+
+
+

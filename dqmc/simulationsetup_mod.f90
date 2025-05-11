@@ -57,6 +57,12 @@ module simulationsetup_mod
         character(len=100)    :: ckbfilename ! File name of checkerboard file to read in
         integer               :: ckbiounit   ! Input/output unit for the ckbfilename file
 
+        character(len=100)    :: outfilename
+        integer               :: ounit
+
+        character(len=100)    :: debfilename
+        integer               :: dunit
+
         real(dp), allocatable :: T(:, :)     ! Hopping matrix (N x N)
         integer , allocatable :: h(:, :)     ! Hubbard Stratonovich field (N x L)
         real(dp), allocatable :: Gup(:, :)   ! up spin equal time Green's function (N X N)
@@ -111,6 +117,21 @@ module simulationsetup_mod
         real(dp)              :: dndenavg        ! avg real number for dn spin density measurements
         real(dp)              :: dndenerr        ! err real number for dn spin density measurements
 
+        real(dp), allocatable :: kineticbin(:)     ! (binsize)
+        real(dp), allocatable :: kineticbinavgs(:) ! (nbin)
+        real(dp)              :: kineticavg        !
+        real(dp)              :: kineticerr        !
+
+        real(dp), allocatable :: potentialbin(:)     ! (binsize)
+        real(dp), allocatable :: potentialbinavgs(:) ! (nbin)
+        real(dp)              :: potentialavg        !
+        real(dp)              :: potentialerr        !
+
+        real(dp), allocatable :: energybin(:)     ! (binsize)
+        real(dp), allocatable :: energybinavgs(:) ! (nbin)
+        real(dp)              :: energyavg        !
+        real(dp)              :: energyerr        !
+
         real(dp), allocatable :: spindenscorrbin(:, :, :)     ! (N x N x binsize)
         real(dp), allocatable :: spindenscorrbinavgs(:, :, :) ! (N x N x nbin)
         real(dp), allocatable :: spindenscorravg(:, :)        ! (N x N)
@@ -129,6 +150,21 @@ module simulationsetup_mod
         complex(dp)              :: dnpolavg
         complex(dp)              :: uppolerr
         complex(dp)              :: dnpolerr
+
+        real(dp), allocatable :: updenfullbin(:, :)           ! (N x binsize)
+        real(dp), allocatable :: dndenfullbin(:, :)           ! (N x binsize)
+        real(dp), allocatable :: updenfullbinavgs(:, :)       ! (N x nbin)
+        real(dp), allocatable :: dndenfullbinavgs(:, :)       ! (N x nbin)
+        real(dp), allocatable :: updenfullavg(:)              ! (N)
+        real(dp), allocatable :: dndenfullavg(:)              ! (N)
+        real(dp), allocatable :: updenfullerr(:)              ! (N)
+        real(dp), allocatable :: dndenfullerr(:)              ! (N)
+
+        real(dp), allocatable :: doubleoccfullbin(:, :)       ! (N x binsize)
+        real(dp), allocatable :: doubleoccfullbinavgs(:, :)   ! (N x nbin)
+        real(dp), allocatable :: doubleoccfullavg(:)          ! (N)
+        real(dp), allocatable :: doubleoccfullerr(:)          ! (N)
+
 
         ! Used only when using bmult_mod instead of bmultexact_mod.
         ! That is, when B matrices are multiplied by using the approximate matrix exponential
@@ -154,7 +190,7 @@ module simulationsetup_mod
     contains
 
     subroutine setup_simulation(S, N, L, nstab, north, nbin, nmeassweep, nskip, nequil, &
-        dtau, U, mu, ckbfilename)
+        dtau, U, mu, ckbfilename, outfilename, debfilename)
         !
         ! Main way of setting up a simulation datatype S for use in simulation.
         ! After calling setup_simulation, simulate(S) (from simulate_mod) should immediately
@@ -173,6 +209,8 @@ module simulationsetup_mod
         real(dp)          , intent(in)    :: U
         real(dp)          , intent(in)    :: mu
         character(len=*)  , intent(in)    :: ckbfilename
+        character(len=*)  , intent(in)    :: outfilename
+        character(len=*)  , intent(in)    :: debfilename
 
 
         S%N          = N
@@ -197,6 +235,8 @@ module simulationsetup_mod
         S%aldmuinv = 1 / S%aldmu
 
         S%ckbfilename = ckbfilename
+        S%outfilename = outfilename
+        S%debfilename = debfilename
 
         S%qrdlwork = 5 * (3 * N + 1)
         allocate(S%ckbwork(N))
@@ -231,6 +271,16 @@ module simulationsetup_mod
         allocate(S%dndenbin(S%binsize))
         allocate(S%dndenbinavgs(nbin))
 
+        allocate(S%kineticbin(S%binsize))
+        allocate(S%kineticbinavgs(nbin))
+
+        allocate(S%potentialbin(S%binsize))
+        allocate(S%potentialbinavgs(nbin))
+
+        allocate(S%energybin(S%binsize))
+        allocate(S%energybinavgs(nbin))
+
+
         allocate(S%spindenscorrbin(N, N, S%binsize))
         allocate(S%spindenscorrbinavgs(N, N, nbin))
         allocate(S%spindenscorravg(N, N))
@@ -246,6 +296,27 @@ module simulationsetup_mod
         allocate(S%uppolbinavgs(S%nbin))
         allocate(S%dnpolbinavgs(S%nbin))
 
+        allocate(S%updenfullbin(N, S%binsize))
+        allocate(S%dndenfullbin(N, S%binsize))
+        allocate(S%updenfullbinavgs(N, S%nbin))
+        allocate(S%dndenfullbinavgs(N, S%nbin))
+        allocate(S%updenfullavg(N))
+        allocate(S%dndenfullavg(N))
+        allocate(S%updenfullerr(N))
+        allocate(S%dndenfullerr(N))
+
+        allocate(S%doubleoccfullbin(N, S%binsize))
+        allocate(S%doubleoccfullbinavgs(N, S%nbin))
+        allocate(S%doubleoccfullavg(N))
+        allocate(S%doubleoccfullerr(N))
+
+
+
+
+
+
+
+
         call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
         call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
 
@@ -260,14 +331,11 @@ module simulationsetup_mod
         allocate(S%expT(N, N))
         allocate(S%expTinv(N, N))
 
-        call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, dtau)
-        S%expT = S%T
-        call exponentiate(S%expT)
-        S%expTinv = S%expT
-        call invert(S%expTinv, N, S%invP, S%invwork, S%invlwork, S%info)
-        S%invP = 0
-        S%invwork = 0
-        S%info = 0
+        call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, 1.0_dp)
+        call expm(S%T, S%expT)
+        call expm(S%T, S%expTinv, -1.0_dp)
+
+
 
 
     endsubroutine setup_simulation
@@ -367,7 +435,9 @@ module simulationsetup_mod
                               param_values%dtau,        &
                               param_values%U,           &
                               param_values%mu,          &
-                              param_values%ckbfilename)
+                              param_values%ckbfilename, &
+                              param_values%outfilename, &
+                              param_values%debfilename)
 
 
     endsubroutine setup_simulation_input

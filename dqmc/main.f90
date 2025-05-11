@@ -14,6 +14,8 @@ program main
     integer          :: iunit
     call setup_simulation_input(S, "input.txt", iunit, output_unit)
     S%h = 1
+    ! Open debugging output file
+    open(newunit=S%dunit, file=S%debfilename, action="write", status="replace")
     call simulate(S)
 
 endprogram main

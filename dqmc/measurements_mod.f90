@@ -54,6 +54,11 @@ module measurements_mod
             call measure_den(S, i)
             call measure_spindenscorr(S, i)
             call measure_pol(S, i)
+            call measure_den_full(S, i)
+            call measure_doubleocc_full(S, i)
+            call measure_kinetic(S, i)
+            call measure_potential(S, i)
+            call measure_energy(S, i)
 
 
 
@@ -103,6 +108,84 @@ module measurements_mod
 
         endsubroutine measure_den
 
+
+        subroutine measure_kinetic(S, i)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: i
+
+            real(dp) :: kinetic
+            real(dp) :: kinmuup, kinmudn
+            integer  :: j
+
+            kinetic = sum(S%T * S%Gup) + sum(S%T * S%Gdn)
+            kinmuup = 0.0_dp; kinmudn = 0.0_dp
+            do j = 1, S%N
+                kinmuup = kinmuup + 1.0_dp - S%Gup(j, j) + S%U / 2.0_dp
+                kinmudn = kinmudn + 1.0_dp - S%Gdn(j, j) + S%U / 2.0_dp
+            enddo
+            kinetic = kinetic - S%mu * kinmuup - S%mu * kinmudn
+
+            S%kineticbin(i) = S%sgn * kinetic
+
+
+        endsubroutine measure_kinetic
+
+
+        subroutine measure_potential(S, i)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: i
+
+            real(dp) :: potential
+            integer  :: j
+
+            potential = 0.0_dp
+            do j = 1, S%N
+                potential = potential + (S%Gup(j, j) - 0.5_dp) * (S%Gdn(j, j) - 0.5_dp) * S%U
+            enddo
+
+            S%potentialbin(i) = S%sgn * potential
+
+
+        endsubroutine measure_potential
+
+
+        subroutine measure_energy(S, i)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: i
+
+            S%energybin(i) = S%sgn * S%kineticbin(i) + S%sgn * S%potentialbin(i)
+
+
+        endsubroutine measure_energy
+
+
+        subroutine measure_den_full(S, i)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: i
+
+            integer :: j
+
+            do j = 1, S%N
+                S%updenfullbin(j, i) = S%Sgn * (1.0_dp - S%Gup(j, j))
+                S%dndenfullbin(j, i) = S%Sgn * (1.0_dp - S%Gdn(j, j))
+            enddo
+
+
+        endsubroutine measure_den_full
+
+
+        subroutine measure_doubleocc_full(S, i)
+            type(Simulation), intent(inout) :: S
+            integer         , intent(in)    :: i
+
+            integer :: j
+
+            do j = 1, S%N
+                S%doubleoccfullbin(j, i) = S%Sgn * (1.0_dp - S%Gup(j, j)) * (1.0_dp - S%Gdn(j, j))
+            enddo
+
+            
+        endsubroutine measure_doubleocc_full
 
         subroutine measure_spindenscorr(S, k)
             !
@@ -180,7 +263,18 @@ module measurements_mod
                     S%spindenscorrbinavgs(j, k, i) = vector_avg(S%spindenscorrbin(j, k, :), S%binsize) / S%sgnbinavgs(i)
                 enddo
             enddo
+
+            do k = 1, S%N
+                S%doubleoccfullbinavgs(k, i) = vector_avg(S%doubleoccfullbin(k, :), S%binsize) / S%sgnbinavgs(i)
+                S%updenfullbinavgs    (k, i) = vector_avg(S%updenfullbin    (k, :), S%binsize) / S%sgnbinavgs(i)
+                S%dndenfullbinavgs    (k, i) = vector_avg(S%dndenfullbin    (k, :), S%binsize) / S%sgnbinavgs(i)
+            enddo
+
+            S%kineticbinavgs  (i) = vector_avg(S%kineticbin  , S%binsize) / S%sgnbinavgs(i)
+            S%potentialbinavgs(i) = vector_avg(S%potentialbin, S%binsize) / S%sgnbinavgs(i)
+            S%energybinavgs   (i) = vector_avg(S%energybin   , S%binsize) / S%sgnbinavgs(i)
             
+
         endsubroutine avgbin
 
 
@@ -204,6 +298,16 @@ module measurements_mod
                     call jackknife(S%spindenscorrbinavgs(i, j, :), S%nbin, S%spindenscorravg(i, j), S%spindenscorrerr(i, j))
                 enddo
             enddo
+
+            do i = 1, S%N
+                call jackknife(S%doubleoccfullbinavgs(i, :), S%nbin, S%doubleoccfullavg(i), S%doubleoccfullerr(i))
+                call jackknife(S%updenfullbinavgs    (i, :), S%nbin, S%updenfullavg    (i), S%updenfullerr    (i))
+                call jackknife(S%dndenfullbinavgs    (i, :), S%nbin, S%dndenfullavg    (i), S%dndenfullerr    (i))
+            enddo
+
+            call jackknife(S%kineticbinavgs  , S%nbin, S%kineticavg  , S%kineticerr)
+            call jackknife(S%potentialbinavgs, S%nbin, S%potentialavg, S%potentialerr)
+            call jackknife(S%energybinavgs   , S%nbin, S%energyavg   , S%energyerr)
 
 
         endsubroutine dostatistics

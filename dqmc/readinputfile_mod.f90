@@ -33,6 +33,8 @@ module readinputfile_mod
         real(dp)                      :: U
         real(dp)                      :: mu
         character(len=:), allocatable :: ckbfilename
+        character(len=:), allocatable :: outfilename
+        character(len=:), allocatable :: debfilename
     endtype parameter_values
 
 
@@ -49,6 +51,8 @@ module readinputfile_mod
         logical :: U           = .false.
         logical :: mu          = .false.
         logical :: ckbfilename = .false.
+        logical :: outfilename = .false.
+        logical :: debfilename = .false.
     endtype parameter_set
 
 
@@ -220,6 +224,12 @@ module readinputfile_mod
                 case("ckbfilename")
                     param_values%ckbfilename = right
                     param_set%ckbfilename = .true.
+                case("outfilename")
+                    param_values%outfilename = right
+                    param_set%outfilename = .true.
+                case("debfilename")
+                    param_values%debfilename = right
+                    param_set%debfilename = .true.
             endselect
 
 
@@ -242,6 +252,8 @@ module readinputfile_mod
             write(unit=ounit, fmt="(a20, f20.10)") "U = "          , param_values%U
             write(unit=ounit, fmt="(a20, f20.10)") "mu = "         , param_values%mu
             write(unit=ounit, fmt="(a20, a20)")    "ckbfilename = ", param_values%ckbfilename
+            write(unit=ounit, fmt="(a20, a20)")    "outfilename = ", param_values%outfilename
+            write(unit=ounit, fmt="(a20, a20)")    "debfilename = ", param_values%debfilename
 
         endsubroutine printparams
 
@@ -249,29 +261,31 @@ module readinputfile_mod
         subroutine asndefaults(param_values, param_set, ounit)
             type(parameter_values), intent(inout) :: param_values
             type(parameter_set)   , intent(inout) :: param_set
-            integer                , intent(in)    :: ounit
+            integer               , intent(in)    :: ounit
             
-            integer  :: L_default
-            integer  :: nstab_default
-            integer  :: north_default
-            integer  :: nbin_default
-            integer  :: nmeassweep_default
-            integer  :: nskip_default
-            integer  :: nequil_default
-            real(dp) :: dtau_default
-            real(dp) :: U_default
-            real(dp) :: mu_default
+            integer           :: L_default
+            integer           :: nstab_default
+            integer           :: north_default
+            integer           :: nbin_default
+            integer           :: nmeassweep_default
+            integer           :: nskip_default
+            integer           :: nequil_default
+            real(dp)          :: dtau_default
+            real(dp)          :: U_default
+            real(dp)          :: mu_default
+            character(len=10) :: outfilename_default
 
-            L_default          = 60
-            nstab_default      = 5
-            north_default      = 5
-            nbin_default       = 32
-            nmeassweep_default = 1000 * nbin_default
-            nskip_default      = 5
-            nequil_default     = 1000
-            dtau_default       = 0.125
-            U_default          = 0.0_dp
-            mu_default         = 0.0_dp
+            L_default           = 60
+            nstab_default       = 5
+            north_default       = 5
+            nbin_default        = 32
+            nmeassweep_default  = 1000 * nbin_default
+            nskip_default       = 5
+            nequil_default      = 1000
+            dtau_default        = 0.125
+            U_default           = 0.0_dp
+            mu_default          = 0.0_dp
+            outfilename_default = "output.txt"
 
             if (.not. param_set%N) then
                 write(unit=ounit, fmt="(a)") "Warning: N not set. Simulation cannot run unless assigned."

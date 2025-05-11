@@ -948,4 +948,28 @@ module customla_mod
 
         endsubroutine zdeterminant
 
+
+    subroutine eigenvalues(A, wr, wi)
+        real(dp), intent(in)  :: A(:, :)
+        real(dp), intent(out) :: wr(size(A, 1))
+        real(dp), intent(out) :: wi(size(A, 1))
+
+        integer :: m
+        real(dp), allocatable :: B(:, :)
+        real(dp), allocatable :: work(:)
+        integer               :: lwork
+        integer               :: info
+
+        m = size(A, 1)
+        lwork = 8 * m
+        allocate(B(m, m))
+        allocate(work(lwork))
+        call copy_matrix(A, B, m)
+
+
+        call dgeev('N', 'N', m, B, m, wr, wi, A, m, A, m, work, lwork, info)
+
+
+    endsubroutine eigenvalues
+
 endmodule customla_mod

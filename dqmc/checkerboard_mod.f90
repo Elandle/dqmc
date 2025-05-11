@@ -1,6 +1,8 @@
 module checkerboard_mod
-    use numbertypes
+    use iso_fortran_env, only: real64
     implicit none
+
+    integer, parameter, private :: dp = real64
     !
     ! Outline of the checkerboard method
     !
@@ -558,7 +560,19 @@ module checkerboard_mod
                     read(str, *) i, j, ij, ji
                     T(i, j) = scale * ij
                     T(j, i) = scale * ji
+                    write(6, "(a, i4, a, i4, a, f8.4)") "T(", i, ", ", j, ") = ", scale * ij
+                    write(6, "(a, i4, a, i4, a, f8.4)") "T(", j, ", ", i, ") = ", scale * ji
                 enddo
+            enddo
+
+
+
+
+            do i = 1, N
+                do j = 1, N
+                    write(6, "(f17.8)", advance="no") T(i, j)
+                enddo
+                write(6, "(a)") ""
             enddo
         
 

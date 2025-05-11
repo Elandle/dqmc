@@ -197,11 +197,19 @@ module equalgreens_mod
             integer         , intent(in)    :: sigma
 
             if (sigma .eq. 1) then      ! up spin (sigma = 1)
-                call right_Binvmult(S, S%Gup, l, sigma)
-                call left_Bmult(S, S%Gup, l, sigma)
+                ! Fast
+                ! call right_Binvmult(S, S%Gup, l, sigma)
+                ! call left_Bmult(S, S%Gup, l, sigma)
+                ! Slow
+                call right_Binvmultexact(S, S%Gup, l, sigma)
+                call left_Bmultexact(S, S%Gup, l, sigma)
             else                        ! dn spin (sigma = -1)
-                call right_Binvmult(S, S%Gdn, l, sigma)
-                call left_Bmult(S, S%Gdn, l, sigma)
+                ! Fast
+                ! call right_Binvmult(S, S%Gdn, l, sigma)
+                ! call left_Bmult(S, S%Gdn, l, sigma)
+                ! Slow
+                call right_Binvmultexact(S, S%Gdn, l, sigma)
+                call left_Bmultexact(S, S%Gdn, l, sigma)
             endif
 
 
@@ -225,6 +233,12 @@ module equalgreens_mod
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
 
+            ! Two choiced for updating Green's function
+            ! 1. From scratch (slow)
+            call newG(S, l, sigma)
+            return
+
+            ! 2. Wrapping (fast)
             if (sigma .eq. 1) then          ! up spin (sigma = 1)
                 if ((mod(S%upstabi+1, S%nstab) .eq. 0) .or. (l .eq. 1)) then
                     call newG(S, l, sigma)
@@ -249,8 +263,40 @@ module equalgreens_mod
 
 
         subroutine newG(S, l, sigma)
-            !(A, S, N, L, north, getj, make_B, left_Bmult, &
-            !              Q, P, Pinv, tau, work, lwork, D, F, T, matwork, R)
+            !
+            ! Computes a new equal time Green's function at imaginary time step l
+            ! and sets it to S%Gup (sigma=1) or S%Gdn (sigma=-1)
+            !
+            ! Mathematically (ignoring spin):
+            !
+            !   G(l) = inv(id + B(l) * ... * B(1) * B(L) * ... * B(l+1))
+            !
+            !
+            ! Where each B(j) is a single electron propogator from imaginary time step j-1 to j
+            !
+            ! This Green's function is computed stably by the ASvQRD algorithm.
+            ! This algorithm consists of two steps for computing G(l).
+            !
+            ! First, the product of L matrices:
+            !
+            !       B(L) * B(L-1) * ... * B(1)
+            !
+            ! is computed in a stable manner.
+            !
+            ! Then the addition of the identity and inverse are taken at once,
+            ! in a stable manner.
+            !
+            ! The product of L matrices is done in the following way.
+            !
+            ! First the matrix B(1) is QR with column pivoting factorized.
+            !
+            !       B(1) = Q * R * inv(P)
+            !
+            ! (an inverse of P is being used here to match LAPACK usage)
+            !
+            ! Implementation note: in DQMC we need to take a product of L B matrices.
+            ! Each 
+            !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
@@ -264,11 +310,17 @@ module equalgreens_mod
             j = 1
 
             ! Q = B(l)
-            call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
-                    
+            ! Fast
+            ! call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
+            ! Slow
+            call make_Bexact(S, S%qrdQ, getj(j, S%L, l), sigma)
+
             if (j .lt. S%north) then
                 do j = j+1, S%north
-                    call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                    ! Fast
+                    ! call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                    ! Slow
+                    call left_Bmultexact(S, S%qrdQ, getj(j, S%L, l), sigma)
                 enddo
             endif
             j = S%north
@@ -330,7 +382,10 @@ module equalgreens_mod
                         else
                             j = j + 1
                             i = i + 1
-                            call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                            ! Fast
+                            ! call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
+                            ! Slow
+                            call left_Bmultexact(S, S%qrdQ, getj(j, S%L, l), sigma)
                         endif
                     enddo
                 endif
