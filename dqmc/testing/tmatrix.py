@@ -1,7 +1,7 @@
 import numpy
 import scipy
 
-delta = 0
+delta = 0.1
 t = 1
 v = 1
 
@@ -20,7 +20,10 @@ K[4, 0], K[5, 1], K[6, 2], K[7, 3] = v, v, v, v
 K[4, 5], K[5, 6], K[6, 7], K[7, 4] = tm, tm, tm, tm
 K[5, 4], K[6, 5], K[7, 6], K[4, 7] = tp, tp, tp, tp
 
-beta = 3.2
+L = 40
+dtau = 0.08
+beta = L * dtau
 
-G = scipy.linalg.inv(numpy.eye(n) + scipy.linalg.expm(-beta * K))
-print(numpy.round(G, 3))
+G = scipy.linalg.inv(numpy.eye(n) + scipy.linalg.expm(beta * K))
+print(numpy.round(G, 5))
+

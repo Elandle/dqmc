@@ -13,18 +13,17 @@ module simulate_mod
     !
     contains
 
-
+        !> \brief Performs one Monte Carlo sweep.
+        !!
+        !! Sweeps each imaginary time slice \f$l = 1, \dots, L\f$, performing
+        !! one Monte Carlo sweep.
         subroutine sweep(S)
-            !
-            ! Sweeps through all imaginary time slices 1, ..., L, performing
-            ! one Monte Carlo sweep.
-            !
             type(Simulation), intent(inout) :: S
 
             integer :: l
 
+            ! Sweep through imaginary time
             do l = 1, S%L
-                ! Sweep through imaginary time
 
                 ! Update Green's functions for this time slice
                 call timeupdate(S, l, 1)
@@ -34,96 +33,59 @@ module simulate_mod
                 call sweepslice(S, l)
                 
             enddo
-
-
         endsubroutine sweep
 
+
+        !> \brief Sweeps through a slice.
+        !!
+        !! Sweeps through all sites \f$i = 1, \dots, N\f$, proposing
+        !! a flip to \f$h(i, l)\f$ at a fixed imaginary time slice \f$l\f$.
         subroutine sweepslice(S, l)
-            !
-            ! Sweeps slice l in a DQMC simulation.
-            !
-            ! Sweeps through all sites 1, ..., N, proposing a flip,
-            ! for a given imaginary time slice l
-            !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
 
-            ! Present for debugging ---
-            real(dp) :: wr(S%N), wi(S%N)
-            ! -------------------------
+            integer  :: i
+            real(dp) :: rand
 
-            integer :: i
-
-            ! Sweep through sites at a fixed imaginary time
+            ! Sweep through all sites i = 1, ..., N at a fixed imaginary time step l
             do i = 1, S%N
-                ! Proposal: flip h(i, l)
+                ! Propose flipping h(i, l)
 
-                ! Calculating the acceptance probability R of that flip
-                ! Use one of the following:
-                ! 1. From the Green's function (fast)
-                ! call greens_R(S, i, l, 1)
-                ! call greens_R(S, i, l, -1)
-                ! 2. From the definition (slow)
-                call scratch_R(S, i, l, 1)
-                call scratch_R(S, i, l, -1)
+                ! Calculate the acceptance probability R of that flip
+                call greens_R(S, i, l, 1)
+                call greens_R(S, i, l, -1)
 
+                ! The probability of accepting the flip is R = |Rup * Rdn|
+                ! The sign is needed for measurements
                 S%upsgn = sgn(S%Rup)
                 S%dnsgn = sgn(S%Rdn)
                 S%sgn   = S%upsgn * S%dnsgn
                 S%R     = S%sgn * S%Rup * S%Rdn
 
-                ! Generating a random number uniformly between 0 and 1
-                call random_number(S%rand)
+                ! Generate a random number uniformly between 0 and 1
+                call random_number(rand)
 
                 ! Metropolis algorithm
-                if (S%rand .lt. S%R) then
+                if (rand .lt. S%R) then
                     ! Accept the flip
 
                     ! Flip h(i, l)
                     S%h(i, l) = -S%h(i, l)
 
-                    ! Update Green's functions
-                    ! Use one of the following:
-                    ! 1. Rank one update (fast)
-                    ! call flipupdate(S, i, 1)
-                    ! call flipupdate(S, i, -1)
-                    ! 2. Make from scratch (slow)
-                    call newG(S, l,  1)
-                    call newG(S, l, -1)
+                    ! Update the Green's functions
+                    call flipupdate(S, i, 1)
+                    call flipupdate(S, i, -1)
 
                 else
                     ! Reject the flip
                 endif
-
-                ! Present for debugging ---------
-                write(S%dunit, "(a, i5, i5)") "Slice l, site i = ", l, i
-                write(S%dunit, "(a)")     "Gup = "
-                call print_matrix(S%Gup, S%dunit)
-                call eigenvalues(S%Gup, wr, wi)
-                write(S%dunit, "(a)") "Gup wr = "
-                call print_vector(wr, S%dunit)
-                write(S%dunit, "(a)") "Gup wi = "
-                call print_vector(wi, S%dunit)
-
-                write(S%dunit, "(a)")     "Gdn = "
-                call print_matrix(S%Gdn, S%dunit)
-                call eigenvalues(S%Gdn, wr, wi)
-                write(S%dunit, "(a)") "Gdn wr = "
-                call print_vector(wr, S%dunit)
-                write(S%dunit, "(a)") "Gdn wi = "
-                call print_vector(wi, S%dunit)
-                ! -------------------------------
-
             enddo
-
-
         endsubroutine sweepslice
 
 
+        !> \brief Performs warmup/equilibriation sweeps and
+        !! gets things ready for calling (extra setup needed the very first sweep).
         subroutine warmup(S)
-            !
-            ! Performs the warmup sweeps of a DQMC simulation as specified by S
-            !
             type(Simulation), intent(inout) :: S
 
             integer :: i, l
@@ -148,7 +110,6 @@ module simulate_mod
 
                 ! Sweep through sites of the lattice at slice l
                 call sweepslice(S, l)
-                
             enddo
 
             do i = 2, S%nequil
@@ -156,8 +117,6 @@ module simulate_mod
                 write(S%dunit    , "(a, i5, a)") "Warmup sweep ", i, "..."
                 call sweep(S)
             enddo
-
-            
         endsubroutine warmup
 
 
@@ -168,7 +127,68 @@ module simulate_mod
             type(Simulation), intent(inout) :: S
 
             integer     :: i, j, k
-            complex(dp) :: a, b, c
+
+            ! Print information about how many sweeps there are to the terminal
+            write(output_unit, "(i5, a)") S%ntotal, " Total  sweeps"
+            write(output_unit, "(i5, a)") S%nequil, " Warmup sweeps"
+            write(output_unit, "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
+            write(output_unit, "(i5, a)") S%nbin, " Bins"
+
+            ! For debugging, prints information about the starting simulation
+            ! call debug_setup_print(S)
+
+            ! Warmup
+            call warmup(S)
+
+            ! First measurement sweep right after warmup
+            write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
+            call sweep(S)
+            call measure(S, 1)
+            
+
+            ! Separate first bin loop since a measurement sweep has already been done
+            do i = 2, S%binsize
+                do j = 1, S%nskip
+                    ! Nonmeasured sweeps
+                    write(output_unit, "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
+                    call sweep(S)
+                enddo
+                ! Measurement sweep
+                write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
+                call sweep(S)
+                call measure(S, i)
+            enddo
+            call avgbin(S, 1)
+
+
+            ! Loop over bins
+            do k = 2, S%nbin
+                do i = 1, S%binsize
+                    do j = 1, S%nskip
+                        ! Nonmeasured sweeps
+                        write(output_unit, "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
+                        call sweep(S)
+                    enddo
+                    ! Measurement sweep
+                    write(output_unit, "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
+                    call sweep(S)
+                    call measure(S, i)
+                enddo
+                call avgbin(S, k)
+            enddo
+            
+            ! Do statistics
+            call dostatistics(S)
+
+            ! Output results
+            call output(S)
+        endsubroutine simulate
+
+
+        subroutine debug_setup_print(S)
+            type(Simulation) :: S
+
+            integer :: i, j
 
             write(S%dunit, "(a, f17.8)") "Chemical potential mu    = ", S%mu
             write(S%dunit, "(a, f17.8)") "Time discritization dtau = ", S%dtau
@@ -186,68 +206,18 @@ module simulate_mod
                 enddo
             enddo
 
-            write(output_unit, "(i5, a)") S%ntotal, " Total  sweeps"
-            write(output_unit, "(i5, a)") S%nequil, " Warmup sweeps"
-            write(output_unit, "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
-            write(output_unit, "(i5, a)") S%nbin, " Bins"
             write(S%dunit    , "(i5, a)") S%ntotal, " Total  sweeps"
             write(S%dunit    , "(i5, a)") S%nequil, " Warmup sweeps"
             write(S%dunit    , "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
             write(S%dunit    , "(i5, a)") S%nbin, " Bins"
 
-            ! Warmup
-            call warmup(S)
+        endsubroutine debug_setup_print
 
 
-            ! First measurement sweep right after warmup
-            write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
-            write(S%dunit    , "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
-            call sweep(S)
-            call measure(S, 1)
-            
+        subroutine output(S)
+            type(Simulation) :: S
 
-            ! Separate first bin loop since a measurement sweep has already been done
-            do i = 2, S%binsize
-                do j = 1, S%nskip
-                    ! Nonmeasured sweeps
-                    write(output_unit, "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
-                    write(S%dunit    , "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
-                    call sweep(S)
-                enddo
-                ! Measurement sweep
-                write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
-                write(S%dunit    , "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
-                call sweep(S)
-                call measure(S, i)
-            enddo
-            call avgbin(S, 1)
-
-
-            ! Loop over bins
-            do k = 2, S%nbin
-                do i = 1, S%binsize
-                    do j = 1, S%nskip
-                        ! Nonmeasured sweeps
-                        write(output_unit, "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
-                        write(S%dunit    , "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
-                        call sweep(S)
-                    enddo
-                    ! Measurement sweep
-                    write(output_unit, "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
-                    write(S%dunit    , "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
-                    call sweep(S)
-                    call measure(S, i)
-                enddo
-                call avgbin(S, k)
-            enddo
-            
-            
-            ! Do statistics
-            call dostatistics(S)
-
-
-            ! Output results
-            ! call output
+            complex(dp) :: a, b, c
 
             open(newunit=S%ounit, file=S%outfilename, action="write", status="replace")
 
@@ -283,9 +253,7 @@ module simulate_mod
             call print_vector(S%doubleoccfullavg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_vector(S%doubleoccfullerr, S%ounit)
-            
-
-        endsubroutine simulate
+        endsubroutine output
 
         subroutine abc(S)
             type(Simulation) :: S
@@ -305,42 +273,6 @@ module simulate_mod
 
 
         endsubroutine abc
-
-        subroutine print_matrix(A, ounit)
-            real(dp), intent(in) :: A(:, :)
-            integer , intent(in) :: ounit
-            
-            integer :: m, n, i, j
-
-            m = size(A, 1)
-            n = size(A, 2)
-
-            do i = 1, n
-                do j = 1, m
-                    write(ounit, "(f17.8)", advance="no") A(i, j)
-                enddo
-                write(ounit, "(a)") ""
-            enddo
-
-
-        endsubroutine print_matrix
-
-
-        subroutine print_vector(v, ounit)
-            real(dp), intent(in) :: v(:)
-            integer , intent(in) :: ounit
-
-            integer :: i, m
-
-            m = size(v, 1)
-
-            do i = 1, m
-                write(ounit, "(f17.8)", advance="no") v(i)
-            enddo
-            write(ounit, "(a)") ""
-
-
-        endsubroutine print_vector
 
 
         integer function sgn(x)

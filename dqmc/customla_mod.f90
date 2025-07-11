@@ -6,163 +6,119 @@ module customla_mod
     contains
 
 
+        !> \brief Updates \f$A = AD\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
+        !!
+        !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
+        !! \param[in]    D (`real(dp), dimension(n)`)    Diagonal matrix \f$D\f$ stored as a vector.
+        !! \param[in]    n (`integer`)                   Dimension of \f$A\f$ and \f$D\f$.
+        !! \see Todo: maybe change the `do` to a `do concurrent`?
         subroutine right_diagmult(A, D, n)
-            !
-            ! Updates:
-            !
-            ! A = A * D
-            !
-            ! Where D is a diagonal matrix stored as a vector
-            !
             real(dp), intent(inout) :: A(n, n)
             real(dp), intent(in)    :: D(n)
             integer , intent(in)    :: n
 
             integer :: i
 
-            ! TODO:
-            ! Maybe change the do to a do concurrent?
-
+            ! Scale column i of A by D(i)
             do i = 1, n
                 call dscal(n, D(i), A(1, i), 1)
             enddo
-
-            ! No BLAS:
-            ! do i = 1, n
-            !     A(:, i) = D(i) * A(:, i)
-            ! enddo
-            
-
         endsubroutine right_diagmult
 
-        
+
+        !> \brief Updates \f$A = DA\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
+        !!
+        !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
+        !! \param[in]    D (`real(dp), dimension(n)`)    Diagonal matrix \f$D\f$ stored as a vector.
+        !! \param[in]    n (`integer`)                   Dimension of \f$A\f$ and \f$D\f$.
+        !! \see Todo: maybe change the `do` to a `do concurrent`? </p>
+        !! Some BLAS/LAPACK distributions contain the `dlascl2` subroutine and some do not.
+        !! `dlascl2` should be used if possible. If not, provided alternative code can be used.
         subroutine left_diagmult(A, D, n)
-            !
-            ! Updates:
-            !
-            ! A = D * A
-            !
-            ! Where D is a diagonal matrix stored as a vector
-            !
             real(dp), intent(inout) :: A(n, n)
             real(dp), intent(in)    :: D(n)
             integer , intent(in)    :: n
 
+            ! For some reason, it seems only some BLAS/LAPACK distributions contain the dlascl2 subroutine
+            
             ! BEST
-            ! For some reason, it seems only some BLAS/LAPACK distributions contain the
-            ! dlascl2 subroutine
-
             ! call dlascl2(n, n, D, A, n)
 
             ! SECOND BEST
-            ! Alternative BLAS:
             integer :: i
+            ! Scale row i of A by D(i)
             do i = 1, n
                 call dscal(n, D(i), A(i, 1), n)
             enddo
-
-            ! THIRD BEST
-            ! No BLAS:
-            ! integer :: i
-            ! do i = 1, n
-            !     A(i, :) = D(i) * A(i, :)
-            ! enddo
-            
-            
         endsubroutine left_diagmult
 
 
+        !> \brief Updates \f$A = AD^{-1}\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
+        !!
+        !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
+        !! \param[in]    D (`real(dp), dimension(n)`)    Diagonal matrix \f$D\f$ stored as a vector.
+        !! \param[in]    n (`integer`)                   Dimension of \f$A\f$ and \f$D\f$.
+        !! \see Todo: maybe change the `do` to a `do concurrent`? </p>
+        !! This code does not check if \f$D\f$ has all nonzero diagonal entries (in which case
+        !! \f$D^{-1}\f$ does not exist).
         subroutine right_diaginvmult(A, D, n)
-            !
-            ! Updates:
-            !
-            ! A = A * inv(D)
-            !
-            ! Where D is a diagonal matrix stored as a vector
-            !
             real(dp), intent(inout) :: A(n, n)
             real(dp), intent(in)    :: D(n)
             integer , intent(in)    :: n
 
             integer :: i
 
-            ! TODO:
-            ! Maybe change the do to a do concurrent?
-
+            ! Scale column i of A by 1/D(i)
             do i = 1, n
                 call dscal(n, 1.0_dp / D(i), A(1, i), 1)
             enddo
-
-            ! No BLAS:
-            ! do i = 1, n
-            !     A(:, i) = A(:, i) / D(i)
-            ! enddo
-            
-
         endsubroutine right_diaginvmult
 
 
+        !> \brief Updates \f$A = D^{-1}A\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
+        !!
+        !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
+        !! \param[in]    D (`real(dp), dimension(n)`)    Diagonal matrix \f$D\f$ stored as a vector.
+        !! \param[in]    n (`integer`)                   Dimension of \f$A\f$ and \f$D\f$.
+        !! \see Todo: maybe change the `do` to a `do concurrent`? </p>
+        !! This code does not check if \f$D\f$ has all nonzero diagonal entries (in which case
+        !! \f$D^{-1}\f$ does not exist).
+        !! Some BLAS/LAPACK distributions contain the `dlascl2` subroutine and some do not.
+        !! `dlascl2` should be used if possible. If not, provided alternative code can be used.
         subroutine left_diaginvmult(A, D, n)
-            !
-            ! Updates:
-            !
-            ! A = inv(D) * A
-            !
-            ! Where D is a diagonal matrix stored as a vector
-            !
             real(dp), intent(inout) :: A(n, n)
             real(dp), intent(in)    :: D(n)
             integer , intent(in)    :: n
 
-            ! For some reason, it seems only some BLAS/LAPACK distributions contain the
-            ! dlarscl2 subroutine
+            ! For some reason, it seems only some BLAS/LAPACK distributions contain the dlascl2 subroutine
 
             ! BEST
             ! call dlarscl2(n, n, D, A, n)
 
             ! SECOND BEST
-            ! Alternative BLAS:
             integer :: i
+            ! Scale row i of A by 1/D(i)
             do i = 1, n
                 call dscal(n, 1.0_dp / D(i), A(i, 1), n)
             enddo
-
-            ! THIRD BEST
-            ! No BLAS:
-            ! integer :: i
-            ! do i = 1, n
-            !     A(i, :) = A(i, :) / D(i)
-            ! enddo
-            
-            
         endsubroutine left_diaginvmult
 
 
+        !> \brief Sets \f$D = \text{diag}(A)\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
+        !!
+        !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
+        !! \param[in]    D (`real(dp), dimension(n)`)    Diagonal matrix \f$D\f$ stored as a vector.
+        !! \param[in]    n (`integer`)                   Dimension of \f$A\f$ and \f$D\f$.
         subroutine diag(A, D, n)
-        !
-        ! Sets:
-        !
-        ! D = diag(A)
-        !
-        ! Where A is an n x n matrix and D is stored as a length n vector
-        !
-        real(dp), intent(in)  :: A(n, n)
-        real(dp), intent(out) :: D(n)
-        integer , intent(in)  :: n
+            real(dp), intent(in)  :: A(n, n)
+            real(dp), intent(out) :: D(n)
+            integer , intent(in)  :: n
 
-        integer :: i
+            integer :: i
 
-        ! TODO:
-        ! Test the BLAS version
-
-        do concurrent (i = 1 : n)
-            D(i) = A(i, i)
-        enddo
-
-        ! BLAS version:
-        ! call dcopy(n, A(1, 1), n+1, D, 1)
-
-
+            do concurrent (i = 1 : n)
+                D(i) = A(i, i)
+            enddo
         endsubroutine diag
 
 
@@ -184,8 +140,6 @@ module customla_mod
 
             ! Copy the upper triangular part of A (including the diagonal) to B
             call dlacpy('U', N, N, A, N, B, N)
-
-
         endsubroutine uppertri
 
 
@@ -215,8 +169,6 @@ module customla_mod
 
             ! Maybe:
             ! I(P) = [(j, j = 1, n)]
-
-
         endsubroutine invert_permutation_old
 
 
@@ -259,20 +211,7 @@ module customla_mod
             if (m .gt. 0) then
                 goto 20
             endif
-
-
         endsubroutine invert_permutation
-
-
-
-
-
-
-
-
-
-
-
 
 
         subroutine permutecols(A, P, n)
@@ -322,8 +261,6 @@ module customla_mod
 
                 P(ptr) = 0
             end do
-
-
         endsubroutine permutecols
 
 
@@ -362,9 +299,8 @@ module customla_mod
                     enddo
                 endif
             enddo
-
-
         endsubroutine permute_matrix_columns
+
 
         subroutine permute_matrix_rows(A, m, P, Pinv)
             real(dp), intent(inout) :: A(m, m)
@@ -396,9 +332,8 @@ module customla_mod
                     enddo
                 endif
             enddo
-
-
         endsubroutine permute_matrix_rows
+
 
         subroutine rotate_matrix_columns(P, leader, A, m)
             ! Part of permute
@@ -418,7 +353,6 @@ module customla_mod
                     i = P(i)
                 endif
             enddo
-
         endsubroutine rotate_matrix_columns
 
 
@@ -440,10 +374,7 @@ module customla_mod
                     i = P(i)
                 endif
             enddo
-
         endsubroutine rotate_matrix_rows
-
-
 
 
         subroutine permute(P, Pinv, x, m)
@@ -479,9 +410,8 @@ module customla_mod
                     enddo
                 endif
             enddo
-
-
         endsubroutine permute
+
 
         subroutine rotate(P, leader, x)
             ! Part of permute
@@ -503,6 +433,7 @@ module customla_mod
 
         endsubroutine rotate
 
+
         subroutine swap(x, i, j)
             real(dp), intent(inout) :: x(:)
             integer , intent(in)    :: i
@@ -513,13 +444,7 @@ module customla_mod
             temp = x(i)
             x(i) = x(j)
             x(j) = temp
-
         endsubroutine swap
-
-
-
-
-
 
 
         subroutine invert(A, n, P, work, lwork, info)
@@ -546,8 +471,6 @@ module customla_mod
             call dgetrf(n, n, A, n, P, info)
             ! A = inv(A)
             call dgetri(n, A, n, P, work, lwork, info)
-
-
         endsubroutine invert
 
         
@@ -564,8 +487,6 @@ module customla_mod
 
             ! A = id
             call dlaset('A', n, n, 0.0_dp, 1.0_dp, A, n)
-            
-
         endsubroutine make_identity
 
 
@@ -580,25 +501,21 @@ module customla_mod
 
             ! A = 0
             call dlaset('A', n, n, 0.0_dp, 0.0_dp, A, n)
-
-
         endsubroutine zero_matrix
 
 
+        !> Copies \f$B = A\f$, where \f$A\f$ and \f$B\f$ are both \f$n\times n\f$ square matrices.
+        !!
+        !! \param[in]  A  (`real(dp), dimension(n, n)`) Square matrix to copy.
+        !! \param[out] B  (`real(dp), dimension(n, n)`) Square matrix to copy into.
+        !! \param[in]  n  (`integer`)                   Dimension of `A` and `B`.
         subroutine copy_matrix(A, B, n)
-            !
-            ! Sets:
-            !
-            ! B = A
-            !
             real(dp), intent(in)  :: A(n, n)
             real(dp), intent(out) :: B(n, n)
             integer , intent(in)  :: n
 
             ! B = A
             call dlacpy('A', n, n, A, n, B, n)
-
-
         endsubroutine copy_matrix
 
 
@@ -627,8 +544,6 @@ module customla_mod
             ! do i = 1, n
             !     A(:, i) = A(:, i) + B(i, :)
             ! enddo
-
-
         endsubroutine add_trans
 
 
@@ -654,8 +569,6 @@ module customla_mod
             !         A(i, j) = A(i, j) + B(i, j)
             !     enddo
             ! enddo
-
-
         endsubroutine add_matrix
 
 
@@ -682,8 +595,6 @@ module customla_mod
             call dlacpy('a', N, N, A, N, work, N)
             ! A = B * work
             call dgemm('n', 'n', N, N, N, 1.0_dp, B, N, work, N, 0.0_dp, A, N)
-
-
         endsubroutine left_matmul
 
 
@@ -710,8 +621,6 @@ module customla_mod
             call dlacpy('a', N, N, A, N, work, N)
             ! A = work * B
             call dgemm('n', 'n', N, N, N, 1.0_dp, work, N, B, N, 0.0_dp, A, N)
-
-
         endsubroutine right_matmul
 
 
@@ -735,8 +644,6 @@ module customla_mod
                     A(i, j) = B(j, i)
                 enddo
             enddo
-
-
         endsubroutine trans
 
 
@@ -818,8 +725,6 @@ module customla_mod
             !
             !     End of DLASWP
             !
-
-
         endsubroutine dlaswpc
 
 
@@ -857,21 +762,51 @@ module customla_mod
                    call dcopy(n, matwork(1, i), 1, A(1, piv(i)), 1)
                endif
             enddo
-
-
         endsubroutine colpivswap
 
 
-        function matdiff(A, B, n)
-            real(dp), intent(in) :: A(n, n)
-            real(dp), intent(in) :: B(n, n)
-            integer , intent(in) :: n
-            real(dp)             :: matdiff
-            real(dp), external   :: dnrm2
+        real(dp) function avgdiag(A, m) result(avg)
+            real(dp), intent(in) :: A(m, m)
+            integer , intent(in) :: m
 
-            matdiff = dnrm2(n*n, A - B, 1) / n
+            integer  :: j
+
+            avg = 0.0_dp
+            do j = 1, m
+                avg = avg + A(j, j)
+            enddo
+            avg = avg / m
+        endfunction avgdiag
 
 
+        function matdiff(A, B, m, n, work, difftype) result(diff)
+            real(dp)        , intent(in)            :: A(m, n)
+            real(dp)        , intent(in)            :: B(m, n)
+            integer         , intent(in)            :: m
+            integer         , intent(in)            :: n
+            real(dp)        , intent(out)           :: work(m, n)
+            character(len=*), intent(in) , optional :: difftype
+
+            real(dp)    , external    :: dlange
+            real(dp)                  :: diff
+            character(:), allocatable :: actualdifftype
+
+            if (.not. present(difftype)) then
+                actualdifftype = "difflim"
+            else
+                actualdifftype = difftype
+            endif
+
+            work = A - B
+            if     (actualdifftype .eq. "difflim") then
+                diff = dlange('F', m, n, work, m, work, m) / (m * n)
+            elseif (actualdifftype .eq. "maxabs") then
+                diff = dlange('M', m, n, work, m, work, m)
+            elseif (actualdifftype .eq. "frobenius") then
+                diff = dlange('F', m, n, work, m, work, m)
+            elseif (actualdifftype .eq. "abssum") then
+                diff = sum(abs(work))
+            endif
         endfunction matdiff
 
 
@@ -907,8 +842,6 @@ module customla_mod
                     det = -1 * det
                 endif
             enddo
-
-
         endsubroutine determinant
 
 
@@ -944,32 +877,29 @@ module customla_mod
                     det = -1 * det
                 endif
             enddo
-
-
         endsubroutine zdeterminant
 
 
-    subroutine eigenvalues(A, wr, wi)
-        real(dp), intent(in)  :: A(:, :)
-        real(dp), intent(out) :: wr(size(A, 1))
-        real(dp), intent(out) :: wi(size(A, 1))
+        subroutine eigenvalues(A, wr, wi)
+            real(dp), intent(in)  :: A(:, :)
+            real(dp), intent(out) :: wr(size(A, 1))
+            real(dp), intent(out) :: wi(size(A, 1))
 
-        integer :: m
-        real(dp), allocatable :: B(:, :)
-        real(dp), allocatable :: work(:)
-        integer               :: lwork
-        integer               :: info
+            integer :: m
+            real(dp), allocatable :: B(:, :)
+            real(dp), allocatable :: work(:)
+            integer               :: lwork
+            integer               :: info
 
-        m = size(A, 1)
-        lwork = 8 * m
-        allocate(B(m, m))
-        allocate(work(lwork))
-        call copy_matrix(A, B, m)
-
-
-        call dgeev('N', 'N', m, B, m, wr, wi, A, m, A, m, work, lwork, info)
+            m = size(A, 1)
+            lwork = 8 * m
+            allocate(B(m, m))
+            allocate(work(lwork))
+            call copy_matrix(A, B, m)
 
 
-    endsubroutine eigenvalues
+            call dgeev('N', 'N', m, B, m, wr, wi, A, m, A, m, work, lwork, info)
+        endsubroutine eigenvalues
 
+        
 endmodule customla_mod

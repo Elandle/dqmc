@@ -1,123 +1,123 @@
+    !> \brief Implements the checkerboard method for approximately multiplying by a matrix exponential quickly.
+    !!
+    !! Outline of the checkerboard method.
+    !!
+    !! Main idea:
+    !!
+    !! To compute updates \f$A = \exp(T)A\f$ or \f$A = A\exp(T)\f$
+    !! using fast (non-dense) matrix-matrix multiplication approximately
+    !! using the fact that \f$T\f$ is sparse.
+    !!
+    !! Theory:
+    !!
+    !! To do this, \f$T\f$ is first split:
+    !!
+    !! \f[T = \text{diag}(T) + C(1) + \dots + C(n)\f]
+    !!
+    !! Then \f$\exp(T)\f$ is approximated using the Suzuki-Trotter approximation:
+    !!
+    !! \f[\exp(T) ~ \exp(\text{diag}(T))\exp(C(1))\dots\exp(C(n))\f]
+    !!
+    !! By choosing each \f$C(i)\f$ to be strictly sparse, multiplications by
+    !! \f$\exp(C(i))\f$ can be done fast (left multiplication: row updates, right
+    !! multiplication: column updates).
+    !!
+    !! The Suzuki-Trotter approximation gets worse the higher \f$n\f$ is.
+    !! A minimal \f$n\f$ can be found and used by edge-colouring \f$T\f$.
+    !! 
+    !! A symmetric pair of \f$T\f$ is a pair \f$(a, b)\f$ along with a pair of indices
+    !! \f$i, j\f$, such that:
+    !!
+    !! \f[\begin{aligned}
+    !! T(i, j) &= a \\
+    !! T(j, i) &= b \\
+    !! i &< j\text{ (}a\text{ is above the main diagonal and }b\text{ is below)} \\
+    !! (a, b) &\neq (0, 0)\text{ (one can still be }0\text{)}
+    !! \end{aligned}\f]
+    !!
+    !! If \f$A\f$ is a matrix with all entries \f$0\f$ except for:
+    !!
+    !! \f[\begin{aligned}
+    !! A(i, j) &= a \\
+    !! A(j, i) &= b
+    !! \end{aligned}\f]
+    !!
+    !! then it can be shown that multiplication by \f$\exp(A)\f$ amounts to performing either
+    !! two row updates or two column updates. For a symmetric pair \f$(a, b)\f$, call the matrix
+    !! \f$A\f$ formed this way the matrix of the symmetric pair \f$(a, b)\f$.
+    !!
+    !! Assuming \f$T\f$ has no diagonal (if it did, then approximate \f$\exp(T) ~ \exp(\text{diag}(T))\exp(\text{offdiag}(T))\f$),
+    !! form a graph from \f$T\f$ in the following way:
+    !!
+    !! Vertices: the indices \f$1, \dots, n\f$ (\f$T\f$ is \f$n \times n\f$). </p>
+    !! Edges   : \f$i\f$ and \f$j\f$ are connected by an edge if they form the indices of a symmetric pair of \f$T\f$.
+    !!
+    !! Edge colour this graph. This means for each edge \f$(i, j)\f$, give it a colour so that no two incident
+    !! edges to a vertex share the same colour. The lesser the amount of colours used, the better
+    !! the approximation the checkerboard method will produce.
+    !!
+    !! After edge colouring, each edge \f$(i, j)\f$ corresponds to a colour (in other words, label).
+    !! Each edge \f$(i, j)\f$ corresponds to a symmetric pair of T.
+    !! For each colour \f$k\f$, take all of these symmetric pairs (that correspond to a coloured edge), and
+    !! form the matrix:
+    !! \f[C(k) = A(\text{sympair}(1)) + \dots + A(\text{sympair}(m))\f]
+    !!
+    !! In other words, start with a matrix \f$C(k)\f$ of all \f$0\f$'s and fill in its entries according to the rules
+    !! of making a symmetric pair matrix for each symmetric pair with colour \f$k\f$.
+    !!
+    !! It can be shown that multiplication by \f$\exp(C(k))\f$ is the same as multiplication by the exponential
+    !! of each symmetric pair's matrix, which is just 2 row or column updates each.
+    !! In other words, to multiply by \f$\exp(C(k))\f$, iterate through multiplication by \f$\exp(A(l))\f$, where \f$A(l)\f$
+    !! is the matrix of the \f$l\f$th symmetric pair (in colour \f$k\f$).
+    !!
+    !! For best results, \f$T\f$ should be as sparse as possible, and the largest magnitude entry
+    !! of \f$T\f$ should be less than \f$1\f$ (lower is better).
+    !!
+    !! Implementation:
+    !!
+    !! The base data structure is a symmetric pair \ref sympair, which holds the information for multiplying by
+    !! a symmetric matrix (done by the \ref right_symmult and \ref left_symmult subroutines). \ref construct_sympair
+    !! sets this information up using the pair `(a, b)` and their indices `(i, j)`.
+    !!
+    !! `sympair`'s are stored in an array in the \ref ckbcolour datatype, which should store all 
+    !! `sympair`'s corresponding to a single colour. The subroutines \ref left_colourmult and \ref right_colourmult
+    !! handle multiplication by all `sympair`'s in a single colour by iterating through their multiplication.
+    !!
+    !! The \ref checkerboard datatype holds an array of colours (corresponding to the matrices a matrix is split into)
+    !! and handles approximate multiplication (\ref left_ckbmult and \ref right_ckbmult) of a matrix exponential by the
+    !! checkerboard method.
+    !!
+    !! Note: this module is coded assuming the matrix `T` being exponentiated by has no diagonal.
+    !! This is what comes up in DQMC, and if diagonals are explicitly needed, they can either be:
+    !!
+    !! first extracted `D = diag(T)`, `T` updated `T = offdiag(T)`, checkerboard applied to the updated `T`,
+    !! then multiplication by the diagonal matrix `D` implemented
+    !!
+    !! Or this extraction process can easily be added to the checkerboard method code
 module checkerboard_mod
     use iso_fortran_env, only: real64
     implicit none
 
     integer, parameter, private :: dp = real64
-    !
-    ! Outline of the checkerboard method
-    !
-    ! Main idea:
-    !
-    ! To compute updates A = exp(T) * A or A = A * exp(T)
-    ! using fast (non-dense) matrix-matrix multiplication approximately
-    ! using the fact that T is sparse.
-    !
-    ! Theory:
-    !
-    ! To do this, T is first split:
-    !
-    ! T = diag(T) + C(1) + ... + C(n)
-    !
-    ! Then exp(T) is approximated using the Suzuki-Trotter approximation:
-    !
-    ! exp(T) ~ exp(diag(T)) * exp(C(1)) * ... * exp(C(n))
-    !
-    ! By choosing each C(i) to be strictly sparse, multiplications by
-    ! exp(C(i)) can be done fast (left multiplication: row updates, right
-    ! multiplication: column updates).
-    !
-    ! The Suzuki-Trotter approximation gets worse the higher n is.
-    ! A minimal n can be found and used by edge-colouring T.
-    ! 
-    ! A symmetric pair of T is a pair (a, b) along with a pair of indices
-    ! i, j, such that:
-    !
-    ! T(i, j) = a
-    ! T(j, i) = b
-    !       i < j (a is above the main diagonal and b is below)
-    ! (a, b) =/= (0, 0) (one can still be 0)
-    !
-    ! If A is a matrix with all entries 0 except for:
-    !
-    ! A(i, j) = a
-    ! A(j, i) = b 
-    !
-    ! then it can be shown that multiplication by exp(A) amounts to performing either
-    ! two row updates or two column updates. For a symmetric pair (a, b), call the matrix
-    ! A formed this way the matrix of the symmetric pair (a, b).
-    !
-    ! Assuming T has no diagonal (if it did, then approximate exp(T) ~ exp(diag(T)) * exp(offdiag(T)))
-    ! form a graph from T in the following way.
-    !
-    ! Vertices: the indices 1, ..., n (T is n x n)
-    ! Edges   : i and j are connected by an edge if they form the indices of a symmetric pair of T
-    !
-    ! Edge colour this graph. This means for each edge (i, j), give it a colour so that no two incident
-    ! edges to a vertex share the same colour. The lesser the amount of colours used, the better
-    ! the approximation the checkerboard method will produce.
-    !
-    ! After edge colouring, each edge (i, j) corresponds to a colour (in other words, label).
-    ! Each edge (i, j) corresponds to a symmetric pair of T.
-    ! For each colour k, take all of these symmetric pairs (that correspond to a coloured edge), and
-    ! form the matrix:
-    !
-    ! C(k) = A(sympair(1)) + ... A(sympair(m))
-    !
-    ! In other words, start with a matrix C(k) of all 0's and fill in its entries according to the rules
-    ! of making a symmetric pair matrix for each symmetric pair with colour k.
-    !
-    ! It can be shown that multiplication by exp(C(k)) is the same as multiplication by the exponential
-    ! of each symmetric pair's matrix, which is just 2 row or column updates each.
-    ! In other words, to multiply by exp(C(k)), iterate through multiplication by exp(A(l)), where A(l)
-    ! is the matrix of the lth symmetric pair (in colour k).
-    !
-    ! For best results, T should be as sparse as possible, and the largest magnitude entry
-    ! of T should be less than 1 (lower is better).
-    !
-    ! Implementation:
-    !
-    ! The base data structure is a symmetric pair, which holds the information for multiplying by
-    ! a symmetric matrix (done by the right_symmult and left_symmult subroutines). construct_sympair
-    ! sets this information up using the pair (a, b) and their indices (i, j).
-    !
-    ! sympair's are stored in an array in the ckbcolour datatype, which should store all 
-    ! sympair's corresponding to a single colour. The subroutines left_colourmult and right_colourmult
-    ! handle multiplication by all sympair's in a single colour by iterating through their multiplication.
-    !
-    ! The checkerboard datatype holds an array of colours (corresponding to the matrices a matrix is split into)
-    ! and handles approximate multiplication (left_ckbmult and right_ckbmult) of a matrix exponential by the
-    ! checkerboard method.
-    !
-    ! Note: this module is coded assuming the matrix T being exponentiated by has no diagonal.
-    ! This is what comes up in DQMC, and if diagonals are explicitly needed, they can either be:
-    !
-    ! first extracted D = diag(T), T updated T = offdiag(T), checkerboard applied to the updated T,
-    ! then multiplication by the diagonal matrix D implemented
-    !
-    ! or this extraction process can easily be added to the checkerboard method code
-    !
-    type :: checkerboard
-        !
-        ! Stores ckbcolour's for checkerboard multiplication by iterating through
-        ! multiplying by different colours
-        !
-        integer                      :: n
-        type(ckbcolour), allocatable :: colours(:)
 
+    !> \brief Stores `ckbcolour`'s for checkerboard multiplication by iterating
+    !! through multiplying by different colours.
+    type :: checkerboard
+        integer                      :: n           !< Number of colours in checkerboard
+        type(ckbcolour), allocatable :: colours(:)  !< Array of colours in checkerboard (to be allocated of length `n`)
     endtype checkerboard
 
 
+    !> \brief Stores `sympair`'s of the same colour together for multiplication
+    !! at the same time.
     type :: ckbcolour
-        !
-        ! Stores sympair's of the same colour together for multliplication
-        ! at the same time
-        !
-        integer                    :: n
-        type(sympair), allocatable :: pairs(:)
-
+        integer                    :: n         !< Number of sympairs in colour
+        type(sympair), allocatable :: pairs(:)  !< Array of sympairs in colour (to be allocated of length `n`)
     endtype ckbcolour
 
-
+    !> \brief Stores the matrix-exponential information of a symmetric pair
+    !!
+    !! Note that `i < j` for a symmetric pair.
     type :: sympair
         !
         ! Stores the matrix-exponential information of a symmetric pair
@@ -125,7 +125,6 @@ module checkerboard_mod
         !
         integer  :: i, j
         real(dp) :: d, ij, ji
-
     endtype sympair
 
 

@@ -1,3 +1,18 @@
+!> \brief Contains procedures and datatypes of reading in input files.
+!!
+!! While hardcoded for DQMC, the code can easily be adapted for other uses.
+!!
+!! Basic usage.
+!!
+!! First declare: <br>
+!! `type(parameter_values) :: param_values` <br>
+!! `type(parameter_set)    :: param_set`    <br>
+!!
+!! To read in values: <br>
+!! `readinputfile(fname, funit, ounit, param_values, param_set)` <br>
+!!
+!! To print the contents: <br>
+!! `call printparams(param_values, ounit)`
 module readinputfile_mod
     use numbertypes
     use iso_fortran_env, only: iostat_end
@@ -20,50 +35,76 @@ module readinputfile_mod
     ! To print the contents:
     ! call printparams(param_values, ounit)
     !
+
+    !> \brief Holds read in parameter values for DQMC.
     type parameter_values
-        integer                       :: N
-        integer                       :: L
-        integer                       :: nstab
-        integer                       :: north
-        integer                       :: nbin
-        integer                       :: nmeassweep
-        integer                       :: nskip
-        integer                       :: nequil
-        real(dp)                      :: dtau
-        real(dp)                      :: U
-        real(dp)                      :: mu
-        character(len=:), allocatable :: ckbfilename
-        character(len=:), allocatable :: outfilename
-        character(len=:), allocatable :: debfilename
+        integer                       :: N           !< Number of sites \f$N\f$ in lattice.
+        integer                       :: L           !< Number of imaginary time slices \f$L\f$.
+        integer                       :: nstab       !< Every `nstab`th time a time slice is advanced, the Green's functions \f$G_\sigma\f$ are computed from new as opposed to wrapping.
+        integer                       :: north       !< Number of \f$B_\sigma\f$ matrices to multiply together before doing a \f$QRP\f$ factorisation in constructing a Green's function from scratch.
+        integer                       :: nbin        !< How many bins to separate measurements into.
+        integer                       :: nmeassweep  !< Total number of sweeps to perform a measurement on.
+        integer                       :: nskip       !< How many sweeps to skip between measurements.
+        integer                       :: nequil      !< How many warmup sweeps to perform.
+        real(dp)                      :: dtau        !< Trotterization parameter \f$\Delta\tau\f$.
+        real(dp)                      :: U           !< Interaction strength \f$U\f$.
+        real(dp)                      :: mu          !< Chemical potential \f$\mu\f$.
+        character(len=:), allocatable :: ckbfilename !< File name to read checkerboard from.
+        character(len=:), allocatable :: outfilename !< File name to print results to.
+        character(len=:), allocatable :: debfilename !< File name to print debugging information (if in debug mode) into.
     endtype parameter_values
 
-
+    !> \brief Tracks whether or not a value has set for each parameter.
+    !!
+    !! Used when assigning default parameter values or stopping code execution if
+    !! a vital parameter is not set. When a parameter is set (either by being read in
+    !! or set to a default value) the corresponding `logical` variable in this type is
+    !! set `.true.`.
     type parameter_set
-        logical :: N           = .false.    
-        logical :: L           = .false.
-        logical :: nstab       = .false.
-        logical :: north       = .false.
-        logical :: nbin        = .false.
-        logical :: nmeassweep  = .false.
-        logical :: nskip       = .false.
-        logical :: nequil      = .false.
-        logical :: dtau        = .false.
-        logical :: U           = .false.
-        logical :: mu          = .false.
-        logical :: ckbfilename = .false.
-        logical :: outfilename = .false.
-        logical :: debfilename = .false.
+        logical :: N           = .false.   !< `.true.` if `N` is set. `.false.` if not.
+        logical :: L           = .false.   !< `.true.` if `L` is set. `.false.` if not.
+        logical :: nstab       = .false.   !< `.true.` if `nstab` is set. `.false.` if not.
+        logical :: north       = .false.   !< `.true.` if `north` is set. `.false.` if not.
+        logical :: nbin        = .false.   !< `.true.` if `nbin` is set. `.false.` if not.
+        logical :: nmeassweep  = .false.   !< `.true.` if `nmeassweep` is set. `.false.` if not.
+        logical :: nskip       = .false.   !< `.true.` if `nskip` is set. `.false.` if not.
+        logical :: nequil      = .false.   !< `.true.` if `nequil` is set. `.false.` if not.
+        logical :: dtau        = .false.   !< `.true.` if `dtau` is set. `.false.` if not.
+        logical :: U           = .false.   !< `.true.` if `U` is set. `.false.` if not.
+        logical :: mu          = .false.   !< `.true.` if `mu` is set. `.false.` if not.
+        logical :: ckbfilename = .false.   !< `.true.` if `ckbfilename` is set. `.false.` if not.
+        logical :: outfilename = .false.   !< `.true.` if `outfilename` is set. `.false.` if not.
+        logical :: debfilename = .false.   !< `.true.` if `debfilename` is set. `.false.` if not.
     endtype parameter_set
 
 
     contains
 
-
+        !> \brief Reads the next line from a file.
+        !!
+        !! Reminder: in Fortran, files are streams.
+        !! So if a line is read from a file (eg, by using the `read` intrinsic)
+        !! that line is consumed in the stream: the next time a line is read,
+        !! it is actually the next line in the file (to go back, an intrinsic
+        !! such as `backspace` or `rewind` may be used).
+        !!
+        !! Reads the next line from file with unit `funit`, storing it in `line`
+        !! with length `maxlen`. Leading spaces are removed, and `line` is padded
+        !! with trailing spaces to fill up to `maxlen` length if necessary.
+        !!
+        !! Example: if the line being read is: </p>
+        !! `nstab = 4` </p>
+        !! Then if `readln` is called with `maxlen = 12`, the read in line is `"nstab = 4    "`. 
+        !!
+        !! \param[in]    funit  (`integer`)                      Unit of file to read from.
+        !! \param[out]   iostat (`integer`)                      Status of the `read` statement on the file read from.
+        !! \param[inout] line   (`character(len=:), allocatable`) String to allocate (`line` must be allocatable) read line into.
+        !! \param[in]    maxlen (`integer, optional`)            Maximum length of a line to read and the exit length of `line`. Lines with data to be read in longer than `maxlen` being read into may result in errors. Default value: `100`.
         subroutine readln(funit, iostat, line, maxlen)
-            integer         ,              intent(in)              :: funit
+            integer                      , intent(in)              :: funit
             integer                      , intent(out)             :: iostat
             character(len=:), allocatable, intent(inout)           :: line
-            integer         ,              intent(in)   , optional :: maxlen
+            integer                      , intent(in)   , optional :: maxlen
 
             ! Cannot edit maxlen since it is optional, so using another integer to hold the value used
             integer :: actual_maxlen
@@ -88,11 +129,18 @@ module readinputfile_mod
 
             read(unit=funit, fmt="(a)", iostat=iostat) line
             line = ltrim(line)
-            
-
         endsubroutine readln
 
 
+        !> \brief Removes a comment from a line (if a comment is present).
+        !!
+        !! Removes from `line` (must be `allocatable`) all text after and including `cmt` present in `line` and all leading and trailing spaces.
+        !!
+        !! For example, if `line = "  N = 12 # 12 site lattice"` and `cmt = "#"` (the default value),
+        !! then after calling `rmcmt`,  `line = "N = 12"`.
+        !!
+        !! \param[inout] line (`character(len=:), allocatable`) String to remove comment and leading and trailing spaces from.
+        !! \param[in]    cmt  (`character(len=:), optional`)    String denoting the start of a comment in `line`. Default value: `"#"`.
         subroutine rmcmt(line, cmt)
             character(len=:), allocatable, intent(inout)           :: line
             character(len=*),              intent(in)   , optional :: cmt
@@ -111,14 +159,24 @@ module readinputfile_mod
 
             if (loc .gt. 0) then
                 line = ltrim(line(1 : loc-1))
+            else
+                line = ltrim(line)
             endif
 
-
             deallocate(actual_cmt)
-
         endsubroutine rmcmt
 
-
+        !> \brief Determines whether or not a line corresponds to an assignment.
+        !!
+        !! Determines whether or not `line` corresponds to an assignment by
+        !! determining whether or not it has `asmtop` in it.
+        !!
+        !! For example, if `line = "N = 12"` and `asmtop = "="` (default),
+        !! then `isasmt` would return `.true.`.
+        !!
+        !! \param[in] line    (`character(len=*)`)           String to determine whether or not an assignment is present in.
+        !! \param[in] asmtop  (`character(len=*), optional`) Assignment operator to search for in string to determine whether it is an assignment or not. Default value: `"="`.
+        !! \result    isasmt  (`logical`)                    `.true.` if `line` corresponds to an assignment (contains the string `asmtop`). `.false.` if not.
         logical function isasmt(line, asmtop)
             character(len=*), intent(in)           :: line
             character(len=*), intent(in), optional :: asmtop
@@ -137,8 +195,6 @@ module readinputfile_mod
             else
                 isasmt = .false.
             endif
-
-
         endfunction isasmt
 
 
@@ -171,13 +227,19 @@ module readinputfile_mod
 
         endsubroutine getasmnts
 
-
+        !> \brief Removes leading and trailing blank spaces from an input string.
+        !!
+        !! Example: if `line = "  abc de   "`, then `ltrim(line)` returns
+        !! `"abc de"`.
+        !!
+        !! \param[in] line   (`character(len=*)`)       String to remove leading and trailing blank spaced from.
+        !! \result    ltrim  (`character(len=trimlen)`) `line` with leading and trailing blank spaces removed, with a length `trimlen` of `line` minus the amount of leading and trailing blank spaces.
         function ltrim(line)
             character(len=*), intent(in) :: line
+
             character(len=len(trim(adjustl(line)))) :: ltrim
 
             ltrim = trim(adjustl(line))
-
         endfunction ltrim
 
 

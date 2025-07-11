@@ -332,8 +332,8 @@ module simulationsetup_mod
         allocate(S%expTinv(N, N))
 
         call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, 1.0_dp)
-        call expm(S%T, S%expT)
-        call expm(S%T, S%expTinv, -1.0_dp)
+        call expm(S%T, S%expT, S%dtau)
+        call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
 
 
 
@@ -387,23 +387,29 @@ module simulationsetup_mod
         inc = -1
         j   = min
         i   = 1
-        do
-            P(i) = complex(real(j, dp), 0.0_dp)
-            if (odd .and. (j .eq. max)) then
+
+        if (N .eq. 1) then
+            j = 1
+            P(1) = complex(real(j, dp), 0.0_dp)
+        else
+            do
+                P(i) = complex(real(j, dp), 0.0_dp)
+                if (odd .and. (j .eq. max)) then
+                    i = i + 1
+                    P(i) = P(i-1)
+                endif
+                if ((j .eq. max) .and. (inc .eq. 1)) then
+                    inc = -1
+                elseif ((j .eq. min) .and. (inc .eq. -1)) then
+                    inc = 1
+                endif
+                j = j + inc
+                if (i .eq. N) then
+                    exit
+                endif
                 i = i + 1
-                P(i) = P(i-1)
-            endif
-            if ((j .eq. max) .and. (inc .eq. 1)) then
-                inc = -1
-            elseif ((j .eq. min) .and. (inc .eq. -1)) then
-                inc = 1
-            endif
-            j = j + inc
-            if (i .eq. N) then
-                exit
-            endif
-            i = i + 1
-        enddo
+            enddo
+        endif
 
         pi = 4 * atan(1.0_dp)
         P  = exp(complex(0.0_dp, 2.0_dp * pi / L)) * P

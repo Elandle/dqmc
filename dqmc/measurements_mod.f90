@@ -1,52 +1,52 @@
+    !> \brief Contains procedures for performing measurements during a simulation,
+    !! and for doing statistics on those measurements.
+    !!
+    !! All measurements are assumed to be binned, and measurement procedures should
+    !! have the following form:
+    !!
+    !!       subroutine measure_quantity(S, i)
+    !!
+    !! where i is the bin entry to fill.
+    !!
+    !! For each quantity measured, S should contain a single bin workspace,
+    !! which holds the data of a single bin before doing statistics on the bin.
+    !! Additionally, for each quantity measured, S should contain a workspace for
+    !! holding bin averages.
+    !!
+    !! The main simulation subroutine (subroutine simulate, from simulate_mod)
+    !! calls the subroutine measure in this module whenever a measurement is
+    !! performed. Here should be a call to each measure_quantity subroutine as
+    !! described above that is desired to be measured. Once all single bins are
+    !! filled, it calls the avgbin subroutine. Here a method of filling a bin
+    !! average should be included for each measurement performed. Once the simulation
+    !! is done, a call to dostatistics is done, where the collected binned data
+    !! should have statistics done on them to prepare them for printing collected
+    !! results.
+    !!
+    !! Note that the avgbin subroutine accounts for the effect of the sign problem
+    !! on collecting measurements: the average of a bin should be divided by the
+    !! average of the sign of determinants (Metropolis ratios) that was present
+    !! when each measurement was being collected.
 module measurements_mod
     use numbertypes
     use simulationsetup_mod
     use polarization_mod
     use statistics_mod
+    use iso_fortran_env, only: terminal => output_unit
     implicit none
-    !
-    ! Contains procedures for performing measurements during a simulation,
-    ! and for doing statistics on those measurements.
-    !
-    ! All measurements are assumed to be binned, and measurement procedures should
-    ! have the following form:
-    !
-    !       subroutine measure_quantity(S, i)
-    !
-    ! where i is the bin entry to fill.
-    !
-    ! For each quantity measured, S should contain a single bin workspace,
-    ! which holds the data of a single bin before doing statistics on the bin.
-    ! Additionally, for each quantity measured, S should contain a workspace for
-    ! holding bin averages.
-    !
-    ! The main simulation subroutine (subroutine simulate, from simulate_mod)
-    ! calls the subroutine measure in this module whenever a measurement is
-    ! performed. Here should be a call to each measure_quantity subroutine as
-    ! described above that is desired to be measured. Once all single bins are
-    ! filled, it calls the avgbin subroutine. Here a method of filling a bin
-    ! average should be included for each measurement performed. Once the simulation
-    ! is done, a call to dostatistics is done, where the collected binned data
-    ! should have statistics done on them to prepare them for printing collected
-    ! results.
-    !
-    ! Note that the avgbin subroutine accounts for the effect of the sign problem
-    ! on collecting measurements: the average of a bin should be divided by the
-    ! average of the sign of determinants (Metropolis ratios) that was present
-    ! when each measurement was being collected.
-    !
+
+
     contains
 
+
+        !> \brief Called by the main simulation subroutine (subroutine simulate,
+        !! from simulate_mod) whenever a measurement is to be performed.
+        !!
+        !! Measurements are performed by calling a series of measurement
+        !! procedures (which should be placed in this module), which
+        !! are assumed to fill the ith bin workspace slot with a
+        !! new measurement.
         subroutine measure(S, i)
-            !
-            ! Called by the main simulation subroutine (subroutine simulate,
-            ! from simulate_mod) whenever a measurement is to be performed.
-            !
-            ! Measurements are performed by calling a series of measurement
-            ! procedures (which should be placed in this module), which
-            ! are assumed to fill the ith bin workspace slot with a
-            ! new measurement.
-            !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
 
@@ -59,9 +59,6 @@ module measurements_mod
             call measure_kinetic(S, i)
             call measure_potential(S, i)
             call measure_energy(S, i)
-
-
-
         endsubroutine measure
 
 
@@ -73,24 +70,20 @@ module measurements_mod
             S%uppolbin(i) = S%sgn * S%polpmeas
             call measure_P(S, S%polB, S%polBZ, S%polpmeas, -1)
             S%dnpolbin(i) = S%sgn * S%polpmeas
-
-
         endsubroutine measure_pol
 
-    
+
+        !> \brief Fills the ith up and down density bin slots with the currently
+        !! measured value of up and down densities.
+        !!
+        !! This subroutine averages these densities over all sites in the lattice
+        !!
+        !! Mathematically, the density on site j is:
+        !!
+        !! \f[\rho_\sigma(j) = 1 - G_\sigma(j, j)\f]
+        !!
+        !! where this density is evaluated for a specific spin (up or dn spin).
         subroutine measure_den(S, i)
-            !
-            ! Fills the ith up and down density bin slots with the currently
-            ! measured value of up and down densities.
-            !
-            ! This subroutine averages these densities over all sites in the lattice
-            !
-            ! Mathematically, the density on site j is:
-            !
-            ! den(j) = 1 - G(j, j)
-            !
-            ! where this density is evaluated for a specific spin (up or dn spin).
-            !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
 
@@ -104,8 +97,6 @@ module measurements_mod
             enddo
             S%updenbin(i) = S%sgn * S%updenbin(i) / S%N
             S%dndenbin(i) = S%sgn * S%dndenbin(i) / S%N
-
-
         endsubroutine measure_den
 
 
@@ -113,21 +104,20 @@ module measurements_mod
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
 
+
             real(dp) :: kinetic
             real(dp) :: kinmuup, kinmudn
             integer  :: j
 
-            kinetic = sum(S%T * S%Gup) + sum(S%T * S%Gdn)
+            kinetic = sum(S%T * transpose(S%Gup)) + sum(S%T * transpose(S%Gdn))
             kinmuup = 0.0_dp; kinmudn = 0.0_dp
             do j = 1, S%N
-                kinmuup = kinmuup + 1.0_dp - S%Gup(j, j) + S%U / 2.0_dp
-                kinmudn = kinmudn + 1.0_dp - S%Gdn(j, j) + S%U / 2.0_dp
+                kinmuup = kinmuup + 1.0_dp - S%Gup(j, j) !  + S%U / 2.0_dp
+                kinmudn = kinmudn + 1.0_dp - S%Gdn(j, j) !  + S%U / 2.0_dp
             enddo
             kinetic = kinetic - S%mu * kinmuup - S%mu * kinmudn
 
             S%kineticbin(i) = S%sgn * kinetic
-
-
         endsubroutine measure_kinetic
 
 
@@ -140,12 +130,11 @@ module measurements_mod
 
             potential = 0.0_dp
             do j = 1, S%N
-                potential = potential + (S%Gup(j, j) - 0.5_dp) * (S%Gdn(j, j) - 0.5_dp) * S%U
+                ! potential = potential + (S%Gup(j, j) - 0.5_dp) * (S%Gdn(j, j) - 0.5_dp) * S%U
+                potential = potential + (1.0_dp - S%Gup(j, j)) * (1.0_dp - S%Gdn(j, j))
             enddo
-
+            potential = potential * S%U
             S%potentialbin(i) = S%sgn * potential
-
-
         endsubroutine measure_potential
 
 
@@ -154,8 +143,6 @@ module measurements_mod
             integer         , intent(in)    :: i
 
             S%energybin(i) = S%sgn * S%kineticbin(i) + S%sgn * S%potentialbin(i)
-
-
         endsubroutine measure_energy
 
 
@@ -169,8 +156,6 @@ module measurements_mod
                 S%updenfullbin(j, i) = S%Sgn * (1.0_dp - S%Gup(j, j))
                 S%dndenfullbin(j, i) = S%Sgn * (1.0_dp - S%Gdn(j, j))
             enddo
-
-
         endsubroutine measure_den_full
 
 
@@ -183,8 +168,6 @@ module measurements_mod
             do j = 1, S%N
                 S%doubleoccfullbin(j, i) = S%Sgn * (1.0_dp - S%Gup(j, j)) * (1.0_dp - S%Gdn(j, j))
             enddo
-
-            
         endsubroutine measure_doubleocc_full
 
         subroutine measure_spindenscorr(S, k)
@@ -207,7 +190,6 @@ module measurements_mod
                                                        +  (del(i, j) - S%Gdn(j, i)) * S%Gup(i, j))
                 enddo
             enddo
-
         endsubroutine measure_spindenscorr
 
 

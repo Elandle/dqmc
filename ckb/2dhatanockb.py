@@ -2,12 +2,24 @@ import numpy
 import ckb
 
 # 2d Hatano Nelson
+#   tp-->    tp-->    tp-->   tp-->
+#   <--tm    <--tm    <--tm   <--tm
+# 0 ------ 1 ------ 2 ------ 3
+# |        |        |        |
+# |v       |v       |v       |v
+# |        |        |        |
+# 4 ------ 5 ------ 6 ------ 7
+#   tm-->    tm-->    tm-->   tm-->
+#   <--tp    <--tp    <--tp   <--tp
+#
+# t(i, j) = hopping j to i
+#
 
 n = 8
 
 t = 1
 v = 1
-delta = 0.1
+delta = 0.5
 tp = t + delta
 tm = t - delta
 
@@ -28,6 +40,7 @@ K[1, 5], K[5, 1] = v, v
 K[2, 6], K[6, 2] = v, v
 K[3, 7], K[7, 3] = v, v
 
+K = K.T
 
 check = ckb.ckb(K)
-check.saveckb("hatanockb.txt")
+check.saveckb("hatanockb05.txt")

@@ -7,13 +7,13 @@ import ckb
 # n = nx * ny total sites
 # tx hopping in the horizontal direction, and ty hopping in the vertical direction
 
-nx = 4
-ny = 4
+nx = 2
+ny = 2
 
 n = nx * ny
 
-tx = 0
-ty = 0
+tx = 1
+ty = 1
 
 Kx = numpy.diag((nx-1) * [tx], k=1) + numpy.diag((nx-1) * [tx], k=-1)
 Kx[0, nx-1] = tx; Kx[nx-1, 0] = tx
@@ -28,4 +28,4 @@ K = numpy.kron(Idy, Kx) + numpy.kron(Ky, Idx)
 
 
 check = ckb.ckb(K)
-check.saveckb("squareckbzero.txt")
+check.saveckb("squareckbtwo.txt")
