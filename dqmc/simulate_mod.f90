@@ -219,40 +219,66 @@ module simulate_mod
 
             complex(dp) :: a, b, c
 
+            integer :: i, j
+
             open(newunit=S%ounit, file=S%outfilename, action="write", status="replace")
 
-            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average sign                    = ", S%sgnavg      , " +- ", S%sgnerr
-            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average upden                   = ", S%updenavg    , " +- ", S%updenerr
-            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average dnden                   = ", S%dndenavg    , " +- ", S%dndenerr
-            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average KE                      = ", S%kineticavg  , " +- ", S%kineticerr
-            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average PE                      = ", S%potentialavg, " +- ", S%potentialerr
-            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average E                       = ", S%energyavg   , " +- ", S%energyerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uppol                   = ", S%uppolavg    , " +- ", S%uppolerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnpol                   = ", S%dnpolavg    , " +- ", S%dnpolerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average sign                               = ", S%sgnavg         , " +- ", S%sgnerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average total density                      = ", S%totaldenavg    , " +- ", S%totaldenerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average upden                              = ", S%updenavg       , " +- ", S%updenerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average dnden                              = ", S%dndenavg       , " +- ", S%dndenerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average KE                                 = ", S%kineticavg     , " +- ", S%kineticerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average CHEE                               = ", S%chemicalavg    , " +- ", S%chemicalerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average PE                                 = ", S%potentialavg   , " +- ", S%potentialerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average E                                  = ", S%energyavg      , " +- ", S%energyerr
+            write(S%ounit, "(a, f17.8, a, f17.8)")   "Average antiferromagnetic structure factor = ", S%antiferroavg   , " +- ", S%antiferroerr
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uppol                              = ", S%uppolavg       , " +- ", S%uppolerr
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnpol                              = ", S%dnpolavg       , " +- ", S%dnpolerr
             a = -(S%L**2)/(((2*4*atan(1.0_dp))**2)*S%N)
             b = a * log(S%uppolavg)**2
             c = abs(2 * a * log(b) / b) * S%uppolerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uplambda^2              = ", b, " +- ", c
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uplambda^2                         = ", b, " +- ", c
             b = a * log(S%dnpolavg)**2
             c = abs(2 * a * log(b) / b) * S%dnpolerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnlambda^2              = ", b, " +- ", c
-            write(S%ounit, "(a)")                    "Spin density correlation        = "
+            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnlambda^2                         = ", b, " +- ", c
+            write(S%ounit, "(a)")                    "Gup                                        = "
+            call print_matrix(S%Gupavg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_matrix(S%Guperr, S%ounit)
+            write(S%ounit, "(a)")                    "Gdn                                        = "
+            call print_matrix(S%Gdnavg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_matrix(S%Gdnerr, S%ounit)
+            write(S%ounit, "(a)")                    "Spin density correlation                   = "
             call print_matrix(S%spindenscorravg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_matrix(S%spindenscorrerr, S%ounit)
+            write(S%ounit, "(a)")                    "Spin spin    correlation                   = "
+            call print_matrix(S%spinspincorravg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_matrix(S%spinspincorrerr, S%ounit)
             ! call abc(S)
-            write(S%ounit, "(a)")                    "Average upden (full)            = "
+            write(S%ounit, "(a)")                    "Average upden (full)                       = "
             call print_vector(S%updenfullavg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_vector(S%updenfullerr, S%ounit)
-            write(S%ounit, "(a)")                    "Average dnden (full)            = "
+            write(S%ounit, "(a)")                    "Average dnden (full)                       = "
             call print_vector(S%dndenfullavg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_vector(S%dndenfullerr, S%ounit)
-            write(S%ounit, "(a)")                    "Average double occupancy (full) = "
+            write(S%ounit, "(a)")                    "Average double occupancy (full)            = "
             call print_vector(S%doubleoccfullavg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_vector(S%doubleoccfullerr, S%ounit)
+            write(S%ounit, "(a)")                    "Average magnetic moment (full)             = "
+            call print_vector(S%magmomentavg, S%ounit)
+            write(S%ounit, "(a)") "+-"
+            call print_vector(S%magmomenterr, S%ounit)
+
+            write(S%ounit, "(a)") "Bipartite matrix (entry i, j = 1 means sites i and j are on the same sublattice, -1 different) = "
+            call print_integer_matrix(S%bipartsgn, S%ounit)
+
+
         endsubroutine output
 
         subroutine abc(S)

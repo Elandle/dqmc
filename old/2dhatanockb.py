@@ -18,8 +18,8 @@ import ckb
 n = 8
 
 t = 1
-v = 1
-delta = 0.5
+v = 0.5
+delta = 0.0
 tp = t + delta
 tm = t - delta
 
@@ -43,4 +43,4 @@ K[3, 7], K[7, 3] = v, v
 K = K.T
 
 check = ckb.ckb(K)
-check.saveckb("hatanockb05.txt")
+check.saveckb("hatanockb00.txt")

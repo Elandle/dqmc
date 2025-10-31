@@ -1,14 +1,9 @@
     !> \brief Implements the checkerboard method for approximately multiplying by a matrix exponential quickly.
     !!
-    !! Outline of the checkerboard method.
-    !!
-    !! Main idea:
-    !!
-    !! To compute updates \f$A = \exp(T)A\f$ or \f$A = A\exp(T)\f$
-    !! using fast (non-dense) matrix-matrix multiplication approximately
-    !! using the fact that \f$T\f$ is sparse.
-    !!
-    !! Theory:
+    !! The main idea of the checkerboard method is too compute updates
+    !! \f$A = \exp(T)A\f$ or \f$A = A\exp(T)\f$
+    !! using fast (non-dense) matrix-matrix multiplication approximately,
+    !! taking advantage of the fact that \f$T\f$ is sparse and has low-valued entries.
     !!
     !! To do this, \f$T\f$ is first split:
     !!
@@ -511,8 +506,6 @@ module checkerboard_mod
                     call construct_sympair(ckb%colours(k)%pairs(l), i, j, scale * ij, scale * ji)
                 enddo
             enddo
-
-
         endsubroutine read_ckb
 
 

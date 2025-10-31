@@ -57,7 +57,19 @@ class ckb:
                 for i, j in ijs:
                     print(i+1, j+1, self.T[i, j], self.T[j, i], file=file)
 
-
+    def is_bipartite(self):
+        return networkx.algorithms.is_bipartite(self.G)
+    
+    def savebipartite(self, filename="bip.txt", sgn=1):
+        coloring = networkx.algorithms.bipartite.color(self.G)
+        with open(filename, "w") as file:
+            for vertex, color in coloring.items():
+                vertex = vertex + 1
+                if (color == 0):
+                    color = sgn * 1
+                else:
+                    color = sgn * (-1)
+                print(vertex, color, file=file)
 
 
 class ckbcolour:

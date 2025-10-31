@@ -1,75 +1,77 @@
+    !> \brief Contains the Simulation datatype, usually denoted by `S`, and procedures
+    !! for setting it up for a simulation.
+    !!
+    !! A user should call appropriate setup procedures to configure `S`,
+    !! so it may be called to perform a DQMC simulation, during which
+    !! computations done during the simulation are stored in `S`.
+    !!
+    !! Being the main datatype of a DQMC simulation, most procedures
+    !! are coded to take `S` in as an argument. This is unfortunate for testing
+    !! purposes (eg, constructing a Green's function for a given Hubbard-Stratonovich
+    !! field), but can usually be worked around be calling a Simulation initialization
+    !! procedure with arbitrary values for unnecessary variables or defining
+    !! a Simulation datatype and filling in values as desired, and then calling the
+    !! procedure. A list of dependencies on `S` for calling various procedures for
+    !! testing intends to be developed.
 module simulationsetup_mod
     use numbertypes
     use readinputfile_mod
     use checkerboard_mod
     use convenientla_mod
+    use iso_fortran_env, only: stdout => output_unit
     implicit none
-    !
-    ! Contains the Simulation datatype, usually denoted by S, and procedures
-    ! for setting it up for a simulation.
-    !
-    ! A user should call appropriate setup procedures to configure S,
-    ! so it may be called to perform a DQMC simulation, during which
-    ! computations done during the simulation are stored in S.
-    !
-    ! Being the main datatype of a DQMC simulation, most procedures
-    ! are coded to take S in as an argument. This is unfortunate for testing
-    ! purposes (eg, constructing a Green's function for a given Hubbard-Stratonovich
-    ! field), but can usually be worked around be calling a Simulation initialization
-    ! procedure with arbitrary values for unnecessary variables or defining
-    ! a Simulation datatype and filling in values as desired, and then calling the
-    ! procedure. A list of dependencies on S for calling various procedures for
-    ! testing intends to be developed.
-    !
+
+    !> \brief Main datatype for running simulations.
+    !! Contains nearly everything used in running a simulation.
     type :: Simulation
-        integer :: N          ! Number of sites
-        integer :: L          ! Number of imaginary time slices
+        integer :: N          !< Number of sites
+        integer :: L          !< Number of imaginary time slices
         
-        integer :: nstab      ! Every nstab flips, the Green's functions will be computed from scratch
-        integer :: north      ! How many single particle propagator's (B matrices) can be multiplied together accurately before doing a QRP
-        integer :: nbin       ! How many bins to put measurements into (must divide nmeassweep)
-        integer :: nmeassweep ! How many sweeps will have measurements performed
-        integer :: nskip      ! How many sweeps to skip between measurements
-        integer :: ntotal     ! Total number of sweeps performed (nequil + (nmeassweep - 1) * nskip + nmeassweep)
-        integer :: nequil     ! How many sweeps to equilibriate
-        integer :: binsize    ! How many measurements fit in each bin (nmeassweep / nbin)
+        integer :: nstab      !< Every `nstab` flips, the Green's functions \f$G_\sigma\f$ will be computed from scratch.
+        integer :: north      !< How many `B_\sigma`'s can be multiplied together accurately before doing a QRP when constructing \f$G_\sigma\f$ from scratch.
+        integer :: nbin       !< How many bins to put measurements into (must divide `nmeassweep`).
+        integer :: nmeassweep !< How many sweeps will have measurements performed on them.
+        integer :: nskip      !< How many sweeps to skip between measurements.
+        integer :: ntotal     !< Total number of sweeps performed (`nequil + (nmeassweep - 1) * nskip + nmeassweep`)
+        integer :: nequil     !< How many sweeps to equilibriate/warmup.
+        integer :: binsize    !< How many measurements fit in each bin (`nmeassweep / nbin`)
 
-        real(dp) :: dtau      ! Trotterization parameter
-        real(dp) :: beta      ! Inverse temperature (beta = 1 / temp)
-        real(dp) :: temp      ! Temperature
-        real(dp) :: mu        ! Chemical potential
-        real(dp) :: U         ! Electron interaction strength
-        real(dp) :: alpha     ! Part of Hubbard Stratonovich transformation (alpha = arccosh(exp(dtau * U / 2)))
-        real(dp) :: aldmu     ! Avoid multiplying by exp(dtau * mu) so often (aldmu = alpha * exp(dtau * mu))
-        real(dp) :: aldmuinv  ! Avoid multiplying by 1 / aldmu so often (aldmuinv = 1 / aldmu)
+        real(dp) :: dtau      !< Trotterization parameter \f$\Delta\tau\f$.
+        real(dp) :: beta      !< Inverse temperature \f$\beta = 1/T\f$.
+        real(dp) :: temp      !< Temperature \f$T\f$.
+        real(dp) :: mu        !< Chemical potential \f$\mu\f$.
+        real(dp) :: U         !< Electron interaction strength \f$U\f$.
+        real(dp) :: alpha     !< Part of Hubbard Stratonovich transformation \f$alpha = \arccosh(\exp(\Delta\tau U/2)))\f$.
+        real(dp) :: aldmu     !< Stores `aldmu = alpha * exp(dtau * mu)`.
+        real(dp) :: aldmuinv  !< Stores `aldmuinv = 1 / aldmu`.
 
-        real(dp) :: Rup       ! up spin Metropolis weight
-        real(dp) :: deltaup   ! Intermediate variable for changing Gup in response to a h(i, l) --> -h(i, l) flip
-        real(dp) :: Rdn       ! dn spin Metropolis weight
-        real(dp) :: deltadn   ! Intermediate variable for changing Gdn in response to a h(i, l) --> -h(i, l) flip
+        real(dp) :: Rup       !< Up spin Metropolis weight \f$R_\uparrow\f$.
+        real(dp) :: deltaup   !< Intermediate variable \f$\delta_\uparrow\f$ for changing \f$G_\uparrow\f$ in response to a \f$h(i, l) \rightarrow -h(i, l)\f$ flip.
+        real(dp) :: Rdn       !< Down spin Metropolis weight \f$R_\downarrow\f$.
+        real(dp) :: deltadn   !< Intermediate variable \f$\delta_\downarrow\f$ for changing \f$G_\downarrow\f$ in response to a \f$h(i, l) \rightarrow -h(i, l)\f$ flip.
 
-        real(dp) :: R         ! Metropolis weight (R = Rup * Rdn)
-        real(dp) :: rand      ! Uniform random number between 0 and 1
+        real(dp) :: R         !< Metropolis weight \f$R = R_\uparrow R_\downarrow\f$.
+        real(dp) :: rand      !< Uniform random number between \f$0\f$ and \f$1\f$.
 
-        integer :: upstabi    ! Counter for determining when to compute Gup from scratch
-        integer :: dnstabi    ! Counter for determining when to compute Gdn from scratch
+        integer :: upstabi    !< Counter for determining when to compute \f$G_\uparrow\f$ from scratch.
+        integer :: dnstabi    !< Counter for determining when to compute \f$G_\downarrow\f$ from scratch.
 
-        character(len=100)    :: ckbfilename ! File name of checkerboard file to read in
-        integer               :: ckbiounit   ! Input/output unit for the ckbfilename file
+        character(len=100)    :: ckbfilename !< File name of checkerboard file to read in.
+        integer               :: ckbiounit   !< Input/output unit for the `ckbfilename` file.
 
-        character(len=100)    :: outfilename
-        integer               :: ounit
+        character(len=100)    :: outfilename !< File name of output file.
+        integer               :: ounit       !< Input/output unit for the `outfilename` file.
 
-        character(len=100)    :: debfilename
-        integer               :: dunit
+        character(len=100)    :: debfilename !< File name of debug information file.
+        integer               :: dunit       !< Input/output unit for the `debfilename` file.
 
-        real(dp), allocatable :: T(:, :)     ! Hopping matrix (N x N)
-        integer , allocatable :: h(:, :)     ! Hubbard Stratonovich field (N x L)
-        real(dp), allocatable :: Gup(:, :)   ! up spin equal time Green's function (N X N)
-        real(dp), allocatable :: Gdn(:, :)   ! dn spin equal time Green's function (N x N)
-        integer               :: upsgn       ! sign of Rup
-        integer               :: dnsgn       ! sign of Rdn
-        integer               :: sgn         ! sign of R = Rup * Rdn
+        real(dp), allocatable :: T(:, :)     !< Hopping matrix \f$T\f$ (\f$N x N\f$). \f$T(i, j) = \f$ hopping value from site \f$j\f$ to site \f$i\f$.
+        integer , allocatable :: h(:, :)     !< Hubbard Stratonovich field \f$h\f$ (\f$N x L\f$). Takes only the values \f$1\f$ and \f$-1\f$. \f$h(i, l)\f$ is the value of the \f$h\f$ at site \f$i\f$ at timeslice \f$l\f$. Flipping the spin at \f$i, l\f$ means to set \f$h(i, l) = -h(i, l)\f$.
+        real(dp), allocatable :: Gup(:, :)   !< Up spin equal time Green's function \f$G_\uparrow\f$ (\f$N X N\f$).
+        real(dp), allocatable :: Gdn(:, :)   !< Down spin equal time Green's function \fG_\downarrow$ (\f$N x N\f$).
+        integer               :: upsgn       ! Sign of \f$R_\uparrow\f$.
+        integer               :: dnsgn       ! Sign of \f$R_\downarrow\f$.
+        integer               :: sgn         ! Sign of \f$R = R_\uparrow R_\downarrow\f$.
 
         integer               :: info        ! info argument for LAPACK
         
@@ -165,6 +167,43 @@ module simulationsetup_mod
         real(dp), allocatable :: doubleoccfullavg(:)          ! (N)
         real(dp), allocatable :: doubleoccfullerr(:)          ! (N)
 
+        real(dp), allocatable :: spinspincorrbin(:, :, :)     ! (N x N x binsize)
+        real(dp), allocatable :: spinspincorrbinavgs(:, :, :) ! (N x N x nbin)
+        real(dp), allocatable :: spinspincorravg(:, :)        ! (N x N)
+        real(dp), allocatable :: spinspincorrerr(:, :)        ! (N x N)
+
+        real(dp), allocatable :: Gupbin(:, :, :)     ! (N x N x binsize)
+        real(dp), allocatable :: Gupbinavgs(:, :, :) ! (N x N x nbin)
+        real(dp), allocatable :: Gupavg(:, :)        ! (N x N)
+        real(dp), allocatable :: Guperr(:, :)        ! (N x N)
+
+        real(dp), allocatable :: Gdnbin(:, :, :)     ! (N x N x binsize)
+        real(dp), allocatable :: Gdnbinavgs(:, :, :) ! (N x N x nbin)
+        real(dp), allocatable :: Gdnavg(:, :)        ! (N x N)
+        real(dp), allocatable :: Gdnerr(:, :)        ! (N x N)
+
+        real(dp), allocatable :: antiferrobin(:)     ! (binsize)
+        real(dp), allocatable :: antiferrobinavgs(:) ! (nbin)
+        real(dp)              :: antiferroavg        !
+        real(dp)              :: antiferroerr        !
+
+        real(dp), allocatable :: magmomentbin(:, :)           ! (N x binsize)
+        real(dp), allocatable :: magmomentbinavgs(:, :)       ! (N x nbin)
+        real(dp), allocatable :: magmomentavg(:)              ! (N)
+        real(dp), allocatable :: magmomenterr(:)              ! (N)
+
+        real(dp), allocatable :: chemicalbin(:)     ! (binsize)
+        real(dp), allocatable :: chemicalbinavgs(:) ! (nbin)
+        real(dp)              :: chemicalavg        !
+        real(dp)              :: chemicalerr        !
+
+        real(dp), allocatable :: totaldenbin(:)     ! (binsize)
+        real(dp), allocatable :: totaldenbinavgs(:) ! (nbin)
+        real(dp)              :: totaldenavg        !
+        real(dp)              :: totaldenerr        !
+
+        integer , allocatable :: bipartsgn(:, :)              ! (N x N)
+
 
         ! Used only when using bmult_mod instead of bmultexact_mod.
         ! That is, when B matrices are multiplied by using the approximate matrix exponential
@@ -211,6 +250,11 @@ module simulationsetup_mod
         character(len=*)  , intent(in)    :: ckbfilename
         character(len=*)  , intent(in)    :: outfilename
         character(len=*)  , intent(in)    :: debfilename
+
+
+        integer :: i, j, m, bipartfile, label
+        integer :: biplabels(N)
+        character(len=100) :: str
 
 
         S%N          = N
@@ -310,11 +354,62 @@ module simulationsetup_mod
         allocate(S%doubleoccfullavg(N))
         allocate(S%doubleoccfullerr(N))
 
+        allocate(S%spinspincorrbin(N, N, S%binsize))
+        allocate(S%spinspincorrbinavgs(N, N, nbin))
+        allocate(S%spinspincorravg(N, N))
+        allocate(S%spinspincorrerr(N, N))
+
+        allocate(S%Gupbin(N, N, S%binsize))
+        allocate(S%Gupbinavgs(N, N, nbin))
+        allocate(S%Gupavg(N, N))
+        allocate(S%Guperr(N, N))
+
+        allocate(S%Gdnbin(N, N, S%binsize))
+        allocate(S%Gdnbinavgs(N, N, nbin))
+        allocate(S%Gdnavg(N, N))
+        allocate(S%Gdnerr(N, N))
+
+        allocate(S%antiferrobin(S%binsize))
+        allocate(S%antiferrobinavgs(nbin))
+
+        allocate(S%magmomentbin(N, S%binsize))
+        allocate(S%magmomentbinavgs(N, nbin))
+        allocate(S%magmomentavg(N))
+        allocate(S%magmomenterr(N))
+
+        allocate(S%chemicalbin(S%binsize))
+        allocate(S%chemicalbinavgs(nbin))
+
+        allocate(S%totaldenbin(S%binsize))
+        allocate(S%totaldenbinavgs(nbin))
 
 
+        allocate(S%bipartsgn(N, N))
 
+        open(file="bip.txt", newunit=bipartfile)
+        do i = 1, N
+            read(bipartfile, "(a100)") str
+            read(str, *) j, label
+            biplabels(j) = label
+        enddo
+        close(bipartfile)
 
+        do i = 1, N
+            do j = 1, N
+                if (biplabels(i) .eq. biplabels(j)) then
+                    S%bipartsgn(i, j) = 1
+                else
+                    S%bipartsgn(i, j) = -1
+                endif
+            enddo
+        enddo
 
+        do i = 1, N
+            do j = 1, N
+                write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
+            enddo
+            write(stdout, "(a)") ""
+        enddo
 
 
         call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)

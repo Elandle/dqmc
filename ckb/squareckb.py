@@ -7,8 +7,8 @@ import ckb
 # n = nx * ny total sites
 # tx hopping in the horizontal direction, and ty hopping in the vertical direction
 
-nx = 2
-ny = 2
+nx = 4
+ny = 4
 
 n = nx * ny
 
@@ -28,4 +28,5 @@ K = numpy.kron(Idy, Kx) + numpy.kron(Ky, Idx)
 
 
 check = ckb.ckb(K)
-check.saveckb("squareckbtwo.txt")
+check.saveckb("squareckb.txt")
+check.savebipartite()

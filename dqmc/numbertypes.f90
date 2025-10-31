@@ -6,5 +6,4 @@ module numbertypes
     !
     integer, parameter :: sp = real32
     integer, parameter :: dp = real64
-
 endmodule numbertypes
