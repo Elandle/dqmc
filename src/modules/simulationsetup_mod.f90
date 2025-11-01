@@ -204,7 +204,6 @@ module simulationsetup_mod
 
         integer , allocatable :: bipartsgn(:, :)              ! (N x N)
 
-
         ! Used only when using bmult_mod instead of bmultexact_mod.
         ! That is, when B matrices are multiplied by using the approximate matrix exponential
         ! by the checkerboard method instead of the exact matrix exponential
@@ -217,331 +216,314 @@ module simulationsetup_mod
         real(dp), allocatable :: expT(:, :)      ! exp(dtau * T) (N x N)
         real(dp), allocatable :: expTinv(:, :)   ! inv(exp(dtau * T)) (N x N)
 
-
         ! TODO:
         ! When finished, consolidate workspaces to a minimum
         ! Query for optimal workspace sizes
-
-
     endtype Simulation
-
 
     contains
 
-    subroutine setup_simulation(S, N, L, nstab, north, nbin, nmeassweep, nskip, nequil, &
-        dtau, U, mu, ckbfilename, outfilename, debfilename)
-        !
-        ! Main way of setting up a simulation datatype S for use in simulation.
-        ! After calling setup_simulation, simulate(S) (from simulate_mod) should immediately
-        ! be callable to perform a DQMC simulation.
-        !
-        type(Simulation)  , intent(inout) :: S
-        integer           , intent(in)    :: N
-        integer           , intent(in)    :: L
-        integer           , intent(in)    :: nstab
-        integer           , intent(in)    :: north
-        integer           , intent(in)    :: nbin
-        integer           , intent(in)    :: nmeassweep
-        integer           , intent(in)    :: nskip
-        integer           , intent(in)    :: nequil
-        real(dp)          , intent(in)    :: dtau
-        real(dp)          , intent(in)    :: U
-        real(dp)          , intent(in)    :: mu
-        character(len=*)  , intent(in)    :: ckbfilename
-        character(len=*)  , intent(in)    :: outfilename
-        character(len=*)  , intent(in)    :: debfilename
+        subroutine setup_simulation(S          , N          , L          , nstab, north, nbin,  &
+                                    nmeassweep , nskip      , nequil     , dtau , U    , mu  ,  &
+                                    ckbfilename, outfilename, debfilename)
+            !
+            ! Main way of setting up a simulation datatype S for use in simulation.
+            ! After calling setup_simulation, simulate(S) (from simulate_mod) should immediately
+            ! be callable to perform a DQMC simulation.
+            !
+            type(Simulation)  , intent(inout) :: S
+            integer           , intent(in)    :: N
+            integer           , intent(in)    :: L
+            integer           , intent(in)    :: nstab
+            integer           , intent(in)    :: north
+            integer           , intent(in)    :: nbin
+            integer           , intent(in)    :: nmeassweep
+            integer           , intent(in)    :: nskip
+            integer           , intent(in)    :: nequil
+            real(dp)          , intent(in)    :: dtau
+            real(dp)          , intent(in)    :: U
+            real(dp)          , intent(in)    :: mu
+            character(len=*)  , intent(in)    :: ckbfilename
+            character(len=*)  , intent(in)    :: outfilename
+            character(len=*)  , intent(in)    :: debfilename
+
+            integer :: i, j, m, bipartfile, label
+            integer :: biplabels(N)
+            character(len=100) :: str
+
+            S%N          = N
+            S%L          = L
+
+            S%nstab      = nstab
+            S%north      = north
+            S%nbin       = nbin
+            S%nmeassweep = nmeassweep
+            S%nskip      = nskip
+            S%nequil     = nequil
+            S%binsize    = nmeassweep / nbin
+            S%ntotal     = nequil + (nmeassweep - 1) * nskip + nmeassweep
+
+            S%dtau     = dtau
+            S%beta     = dtau * L
+            S%temp     = 1 / S%beta
+            S%U        = U
+            S%mu       = mu
+            S%alpha    = acosh(exp(dtau * U / 2.0_dp))
+            S%aldmu    = S%alpha * exp(dtau * mu)
+            S%aldmuinv = 1 / S%aldmu
+
+            S%ckbfilename = ckbfilename
+            S%outfilename = outfilename
+            S%debfilename = debfilename
+
+            S%qrdlwork = 5 * (3 * N + 1)
+            allocate(S%ckbwork(N))
+            allocate(S%flipwork(N, 2))
+            allocate(S%qrdB(N, N))
+            allocate(S%qrdQ(N, N))
+            allocate(S%qrdtau(N))
+            allocate(S%qrdR(N, N))
+            allocate(S%qrdD(N))
+            allocate(S%qrdF(N))
+            allocate(S%qrdT(N, N))
+            allocate(S%qrdmatwork(N, N))
+            allocate(S%qrdwork(S%qrdlwork))
+            allocate(S%qrdP(N))
+            allocate(S%qrdI(N))
+            
+            S%invlwork = 5 * N
+            allocate(S%invwork(S%invlwork))
+            allocate(S%invP(N))
+
+            allocate(S%h(N, L))
+
+            allocate(S%Gup(N, N))
+            allocate(S%Gdn(N, N))
+
+            allocate(S%sgnbin(S%binsize))
+            allocate(S%sgnbinavgs(nbin))
+
+            allocate(S%updenbin(S%binsize))
+            allocate(S%updenbinavgs(nbin))
+
+            allocate(S%dndenbin(S%binsize))
+            allocate(S%dndenbinavgs(nbin))
+
+            allocate(S%kineticbin(S%binsize))
+            allocate(S%kineticbinavgs(nbin))
+
+            allocate(S%potentialbin(S%binsize))
+            allocate(S%potentialbinavgs(nbin))
+
+            allocate(S%energybin(S%binsize))
+            allocate(S%energybinavgs(nbin))
 
 
-        integer :: i, j, m, bipartfile, label
-        integer :: biplabels(N)
-        character(len=100) :: str
+            allocate(S%spindenscorrbin(N, N, S%binsize))
+            allocate(S%spindenscorrbinavgs(N, N, nbin))
+            allocate(S%spindenscorravg(N, N))
+            allocate(S%spindenscorrerr(N, N))
+
+            allocate(S%polP(N))
+            allocate(S%polB(N, N))
+            allocate(S%polBZ(N, N))
+            call make_P(S%polP, L, N, int(sqrt(real(N, dp))))
+
+            allocate(S%uppolbin(S%binsize))
+            allocate(S%dnpolbin(S%binsize))
+            allocate(S%uppolbinavgs(S%nbin))
+            allocate(S%dnpolbinavgs(S%nbin))
+
+            allocate(S%updenfullbin(N, S%binsize))
+            allocate(S%dndenfullbin(N, S%binsize))
+            allocate(S%updenfullbinavgs(N, S%nbin))
+            allocate(S%dndenfullbinavgs(N, S%nbin))
+            allocate(S%updenfullavg(N))
+            allocate(S%dndenfullavg(N))
+            allocate(S%updenfullerr(N))
+            allocate(S%dndenfullerr(N))
+
+            allocate(S%doubleoccfullbin(N, S%binsize))
+            allocate(S%doubleoccfullbinavgs(N, S%nbin))
+            allocate(S%doubleoccfullavg(N))
+            allocate(S%doubleoccfullerr(N))
+
+            allocate(S%spinspincorrbin(N, N, S%binsize))
+            allocate(S%spinspincorrbinavgs(N, N, nbin))
+            allocate(S%spinspincorravg(N, N))
+            allocate(S%spinspincorrerr(N, N))
+
+            allocate(S%Gupbin(N, N, S%binsize))
+            allocate(S%Gupbinavgs(N, N, nbin))
+            allocate(S%Gupavg(N, N))
+            allocate(S%Guperr(N, N))
+
+            allocate(S%Gdnbin(N, N, S%binsize))
+            allocate(S%Gdnbinavgs(N, N, nbin))
+            allocate(S%Gdnavg(N, N))
+            allocate(S%Gdnerr(N, N))
+
+            allocate(S%antiferrobin(S%binsize))
+            allocate(S%antiferrobinavgs(nbin))
+
+            allocate(S%magmomentbin(N, S%binsize))
+            allocate(S%magmomentbinavgs(N, nbin))
+            allocate(S%magmomentavg(N))
+            allocate(S%magmomenterr(N))
+
+            allocate(S%chemicalbin(S%binsize))
+            allocate(S%chemicalbinavgs(nbin))
+
+            allocate(S%totaldenbin(S%binsize))
+            allocate(S%totaldenbinavgs(nbin))
 
 
-        S%N          = N
-        S%L          = L
+            allocate(S%bipartsgn(N, N))
 
-        S%nstab      = nstab
-        S%north      = north
-        S%nbin       = nbin
-        S%nmeassweep = nmeassweep
-        S%nskip      = nskip
-        S%nequil     = nequil
-        S%binsize    = nmeassweep / nbin
-        S%ntotal     = nequil + (nmeassweep - 1) * nskip + nmeassweep
-
-        S%dtau     = dtau
-        S%beta     = dtau * L
-        S%temp     = 1 / S%beta
-        S%U        = U
-        S%mu       = mu
-        S%alpha    = acosh(exp(dtau * U / 2.0_dp))
-        S%aldmu    = S%alpha * exp(dtau * mu)
-        S%aldmuinv = 1 / S%aldmu
-
-        S%ckbfilename = ckbfilename
-        S%outfilename = outfilename
-        S%debfilename = debfilename
-
-        S%qrdlwork = 5 * (3 * N + 1)
-        allocate(S%ckbwork(N))
-        allocate(S%flipwork(N, 2))
-        allocate(S%qrdB(N, N))
-        allocate(S%qrdQ(N, N))
-        allocate(S%qrdtau(N))
-        allocate(S%qrdR(N, N))
-        allocate(S%qrdD(N))
-        allocate(S%qrdF(N))
-        allocate(S%qrdT(N, N))
-        allocate(S%qrdmatwork(N, N))
-        allocate(S%qrdwork(S%qrdlwork))
-        allocate(S%qrdP(N))
-        allocate(S%qrdI(N))
-        
-        S%invlwork = 5 * N
-        allocate(S%invwork(S%invlwork))
-        allocate(S%invP(N))
-
-        allocate(S%h(N, L))
-
-        allocate(S%Gup(N, N))
-        allocate(S%Gdn(N, N))
-
-        allocate(S%sgnbin(S%binsize))
-        allocate(S%sgnbinavgs(nbin))
-
-        allocate(S%updenbin(S%binsize))
-        allocate(S%updenbinavgs(nbin))
-
-        allocate(S%dndenbin(S%binsize))
-        allocate(S%dndenbinavgs(nbin))
-
-        allocate(S%kineticbin(S%binsize))
-        allocate(S%kineticbinavgs(nbin))
-
-        allocate(S%potentialbin(S%binsize))
-        allocate(S%potentialbinavgs(nbin))
-
-        allocate(S%energybin(S%binsize))
-        allocate(S%energybinavgs(nbin))
-
-
-        allocate(S%spindenscorrbin(N, N, S%binsize))
-        allocate(S%spindenscorrbinavgs(N, N, nbin))
-        allocate(S%spindenscorravg(N, N))
-        allocate(S%spindenscorrerr(N, N))
-
-        allocate(S%polP(N))
-        allocate(S%polB(N, N))
-        allocate(S%polBZ(N, N))
-        call make_P(S%polP, L, N, int(sqrt(real(N, dp))))
-
-        allocate(S%uppolbin(S%binsize))
-        allocate(S%dnpolbin(S%binsize))
-        allocate(S%uppolbinavgs(S%nbin))
-        allocate(S%dnpolbinavgs(S%nbin))
-
-        allocate(S%updenfullbin(N, S%binsize))
-        allocate(S%dndenfullbin(N, S%binsize))
-        allocate(S%updenfullbinavgs(N, S%nbin))
-        allocate(S%dndenfullbinavgs(N, S%nbin))
-        allocate(S%updenfullavg(N))
-        allocate(S%dndenfullavg(N))
-        allocate(S%updenfullerr(N))
-        allocate(S%dndenfullerr(N))
-
-        allocate(S%doubleoccfullbin(N, S%binsize))
-        allocate(S%doubleoccfullbinavgs(N, S%nbin))
-        allocate(S%doubleoccfullavg(N))
-        allocate(S%doubleoccfullerr(N))
-
-        allocate(S%spinspincorrbin(N, N, S%binsize))
-        allocate(S%spinspincorrbinavgs(N, N, nbin))
-        allocate(S%spinspincorravg(N, N))
-        allocate(S%spinspincorrerr(N, N))
-
-        allocate(S%Gupbin(N, N, S%binsize))
-        allocate(S%Gupbinavgs(N, N, nbin))
-        allocate(S%Gupavg(N, N))
-        allocate(S%Guperr(N, N))
-
-        allocate(S%Gdnbin(N, N, S%binsize))
-        allocate(S%Gdnbinavgs(N, N, nbin))
-        allocate(S%Gdnavg(N, N))
-        allocate(S%Gdnerr(N, N))
-
-        allocate(S%antiferrobin(S%binsize))
-        allocate(S%antiferrobinavgs(nbin))
-
-        allocate(S%magmomentbin(N, S%binsize))
-        allocate(S%magmomentbinavgs(N, nbin))
-        allocate(S%magmomentavg(N))
-        allocate(S%magmomenterr(N))
-
-        allocate(S%chemicalbin(S%binsize))
-        allocate(S%chemicalbinavgs(nbin))
-
-        allocate(S%totaldenbin(S%binsize))
-        allocate(S%totaldenbinavgs(nbin))
-
-
-        allocate(S%bipartsgn(N, N))
-
-        open(file="bip.txt", newunit=bipartfile)
-        do i = 1, N
-            read(bipartfile, "(a100)") str
-            read(str, *) j, label
-            biplabels(j) = label
-        enddo
-        close(bipartfile)
-
-        do i = 1, N
-            do j = 1, N
-                if (biplabels(i) .eq. biplabels(j)) then
-                    S%bipartsgn(i, j) = 1
-                else
-                    S%bipartsgn(i, j) = -1
-                endif
+            open(file="bip.txt", newunit=bipartfile)
+            do i = 1, N
+                read(bipartfile, "(a100)") str
+                read(str, *) j, label
+                biplabels(j) = label
             enddo
-        enddo
+            close(bipartfile)
 
-        do i = 1, N
-            do j = 1, N
-                write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
+            do i = 1, N
+                do j = 1, N
+                    if (biplabels(i) .eq. biplabels(j)) then
+                        S%bipartsgn(i, j) = 1
+                    else
+                        S%bipartsgn(i, j) = -1
+                    endif
+                enddo
             enddo
-            write(stdout, "(a)") ""
-        enddo
+
+            do i = 1, N
+                do j = 1, N
+                    write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
+                enddo
+                write(stdout, "(a)") ""
+            enddo
 
 
-        call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
-        call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
+            call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
+            call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
 
-        ! Makes the random number generator give the same results every time
-        ! TODO: implement seed
-        call random_init(.true., .true.)
+            ! Makes the random number generator give the same results every time
+            ! TODO: implement seed
+            call random_init(.true., .true.)
 
-        S%upstabi = 0
-        S%dnstabi = 0
+            S%upstabi = 0
+            S%dnstabi = 0
 
-        allocate(S%T(N, N))
-        allocate(S%expT(N, N))
-        allocate(S%expTinv(N, N))
+            allocate(S%T(N, N))
+            allocate(S%expT(N, N))
+            allocate(S%expTinv(N, N))
 
-        call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, 1.0_dp)
-        call expm(S%T, S%expT, S%dtau)
-        call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
+            call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, 1.0_dp)
+            call expm(S%T, S%expT, S%dtau)
+            call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
+        endsubroutine setup_simulation
 
+        subroutine make_P(P, L, N, x)
+            !
+            ! Sets:
+            !
+            !       P = exp(2*pi*i/L) * P
+            !
+            ! where the P on the right-hand side of assignment is the geometry-dependent
+            ! polarization (diagonal) matrix (stored as a vector) P.
+            !
+            ! Currently hardcoded for a square lattice with x sites in the x direction
+            ! (number of sites in the y direction is not needed)
+            !
+            !
+            ! max = x / 2 (floored half)
+            !
+            ! For even x, site distances have the pattern (example for x=6):
+            !
+            ! 1 --- 2 --- 3 --- 4 --- 5 --- 6
+            ! 0     1     2     3     2     1
+            !
+            !
+            ! For odd x, site distances have the pattern (example for x=7):
+            !
+            ! 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7
+            ! 0     1     2     3     3     2     1
+            !
+            complex(dp), intent(out) :: P(N)
+            integer    , intent(in)  :: L
+            integer    , intent(in)  :: N
+            integer    , intent(in)  :: x
 
+            integer  :: i, j, inc, max, min
+            logical  :: odd
+            real(dp) :: pi
 
+            if (mod(x, 2) .eq. 0) then
+                odd = .false.
+            else
+                odd = .true.
+            endif
 
-    endsubroutine setup_simulation
+            max = x / 2
+            min = 0
+            inc = -1
+            j   = min
+            i   = 1
 
-
-    subroutine make_P(P, L, N, x)
-        !
-        ! Sets:
-        !
-        !       P = exp(2*pi*i/L) * P
-        !
-        ! where the P on the right-hand side of assignment is the geometry-dependent
-        ! polarization (diagonal) matrix (stored as a vector) P.
-        !
-        ! Currently hardcoded for a square lattice with x sites in the x direction
-        ! (number of sites in the y direction is not needed)
-        !
-        !
-        ! max = x / 2 (floored half)
-        !
-        ! For even x, site distances have the pattern (example for x=6):
-        !
-        ! 1 --- 2 --- 3 --- 4 --- 5 --- 6
-        ! 0     1     2     3     2     1
-        !
-        !
-        ! For odd x, site distances have the pattern (example for x=7):
-        !
-        ! 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7
-        ! 0     1     2     3     3     2     1
-        !
-        complex(dp), intent(out) :: P(N)
-        integer    , intent(in)  :: L
-        integer    , intent(in)  :: N
-        integer    , intent(in)  :: x
-
-        integer  :: i, j, inc, max, min
-        logical  :: odd
-        real(dp) :: pi
-
-        if (mod(x, 2) .eq. 0) then
-            odd = .false.
-        else
-            odd = .true.
-        endif
-
-        max = x / 2
-        min = 0
-        inc = -1
-        j   = min
-        i   = 1
-
-        if (N .eq. 1) then
-            j = 1
-            P(1) = complex(real(j, dp), 0.0_dp)
-        else
-            do
-                P(i) = complex(real(j, dp), 0.0_dp)
-                if (odd .and. (j .eq. max)) then
+            if (N .eq. 1) then
+                j = 1
+                P(1) = complex(real(j, dp), 0.0_dp)
+            else
+                do
+                    P(i) = complex(real(j, dp), 0.0_dp)
+                    if (odd .and. (j .eq. max)) then
+                        i = i + 1
+                        P(i) = P(i-1)
+                    endif
+                    if ((j .eq. max) .and. (inc .eq. 1)) then
+                        inc = -1
+                    elseif ((j .eq. min) .and. (inc .eq. -1)) then
+                        inc = 1
+                    endif
+                    j = j + inc
+                    if (i .eq. N) then
+                        exit
+                    endif
                     i = i + 1
-                    P(i) = P(i-1)
-                endif
-                if ((j .eq. max) .and. (inc .eq. 1)) then
-                    inc = -1
-                elseif ((j .eq. min) .and. (inc .eq. -1)) then
-                    inc = 1
-                endif
-                j = j + inc
-                if (i .eq. N) then
-                    exit
-                endif
-                i = i + 1
-            enddo
-        endif
+                enddo
+            endif
 
-        pi = 4 * atan(1.0_dp)
-        P  = exp(complex(0.0_dp, 2.0_dp * pi / L)) * P
+            pi = 4 * atan(1.0_dp)
+            P  = exp(complex(0.0_dp, 2.0_dp * pi / L)) * P
+        endsubroutine make_P
 
+        subroutine setup_simulation_input(S, fname, funit, ounit)
+            type(Simulation), intent(inout) :: S
+            character(len=*), intent(in)    :: fname
+            integer         , intent(out)   :: funit
+            integer         , intent(in)    :: ounit
 
-    endsubroutine make_P
+            type(parameter_values) :: param_values
+            type(parameter_set)    :: param_set
 
-
-    subroutine setup_simulation_input(S, fname, funit, ounit)
-        type(Simulation), intent(inout) :: S
-        character(len=*), intent(in)    :: fname
-        integer         , intent(out)   :: funit
-        integer         , intent(in)    :: ounit
-
-        type(parameter_values) :: param_values
-        type(parameter_set)    :: param_set
-
-        call readinputfile(fname, funit, ounit, param_values, param_set)
-        call printparams(param_values, ounit)
-        call setup_simulation(S,                        &
-                              param_values%N,           &
-                              param_values%L,           &
-                              param_values%nstab,       &
-                              param_values%north,       &
-                              param_values%nbin,        &
-                              param_values%nmeassweep,  &
-                              param_values%nskip,       &
-                              param_values%nequil,      &
-                              param_values%dtau,        &
-                              param_values%U,           &
-                              param_values%mu,          &
-                              param_values%ckbfilename, &
-                              param_values%outfilename, &
-                              param_values%debfilename)
-
-
-    endsubroutine setup_simulation_input
-
-
+            call readinputfile(fname, funit, ounit, param_values, param_set)
+            call printparams(param_values, ounit)
+            call setup_simulation(S,                        &
+                                param_values%N,           &
+                                param_values%L,           &
+                                param_values%nstab,       &
+                                param_values%north,       &
+                                param_values%nbin,        &
+                                param_values%nmeassweep,  &
+                                param_values%nskip,       &
+                                param_values%nequil,      &
+                                param_values%dtau,        &
+                                param_values%U,           &
+                                param_values%mu,          &
+                                param_values%ckbfilename, &
+                                param_values%outfilename, &
+                                param_values%debfilename)
+        endsubroutine setup_simulation_input
 endmodule simulationsetup_mod

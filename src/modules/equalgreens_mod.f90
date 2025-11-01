@@ -15,13 +15,14 @@ module equalgreens_mod
     use numbertypes
     use simulationsetup_mod
     use bmult_mod
-    use qr_mod
     use printing_mod
     use customla_mod
     use iso_fortran_env, only: output_unit
+    use utilities
     ! use bmultexact_mod
     implicit none
     integer, parameter, private :: terminal = output_unit
+
     contains
 
         !> \brief Compares the currently held Green's function \f$G_\sigma\f$ with a newly computed one.
@@ -69,7 +70,6 @@ module equalgreens_mod
             endif
         endsubroutine compareG
 
-
         subroutine flipupdate_alternative(S, i, sigma)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
@@ -81,32 +81,18 @@ module equalgreens_mod
                 S%qrdB = S%Gup
                 do j = 1, S%N
                     do k = 1, S%N
-                        S%Gup(j, k) = S%qrdB(j, k) - (1.0_dp/S%Rup) * S%qrdB(j, i) * S%deltaup * (delta(i, k) - S%qrdB(i, k))
+                        S%Gup(j, k) = S%qrdB(j, k) - (1.0_dp/S%Rup) * S%qrdB(j, i) * S%deltaup * (del(i, k) - S%qrdB(i, k))
                     enddo
                 enddo
             else
                 S%qrdB = S%Gdn
                 do j = 1, S%N
                     do k = 1, S%N
-                        S%Gdn(j, k) = S%qrdB(j, k) - (1.0_dp/S%Rdn) * S%qrdB(j, i) * S%deltadn * (delta(i, k) - S%qrdB(i, k))
+                        S%Gdn(j, k) = S%qrdB(j, k) - (1.0_dp/S%Rdn) * S%qrdB(j, i) * S%deltadn * (del(i, k) - S%qrdB(i, k))
                     enddo
                 enddo
-            endif
-
-            contains
-                
-                integer function delta(i, j)
-                    integer, intent(in) :: i, j
-                    if (i .eq. j) then
-                        delta = 1
-                    else
-                        delta = 0
-                    endif
-                endfunction delta
-            
-
+            endif           
         endsubroutine flipupdate_alternative
-
 
         !> Updates \f$G_\sigma\f$ quickly if the Hubbard-Stratonovich field was flipped at site \f$i\f$ (assumed flipped and intermediate quantities computed, so no time slice \f$l\f$ needed here).
         !!
@@ -172,7 +158,6 @@ module equalgreens_mod
             endif
         endsubroutine flipupdate
 
-
         subroutine wrap(S, l, sigma)
             !
             ! Updates:
@@ -213,10 +198,7 @@ module equalgreens_mod
                 ! call right_Binvmultexact(S, S%Gdn, l, sigma)
                 ! call left_Bmultexact(S, S%Gdn, l, sigma)
             endif
-
-
         endsubroutine wrap
-
 
         subroutine timeupdate(S, l, sigma)
             !
@@ -299,8 +281,6 @@ module equalgreens_mod
                     S%dnstabi = S%dnstabi + 1
                 endif
             endif
-
-
         endsubroutine timeupdate
 
         !> Computes a new equal time Green's function \f$G_\sigma(l)\f$ at time step \f$l\f$.
@@ -514,7 +494,6 @@ module equalgreens_mod
             endif
         endsubroutine newG
 
-
         !>\brief Returns the index of the \f$i\f$th \f$B_\sigma\f$ matrix from the right in the
         !! multiplication chain when computed a single particle equal time Green's function \f$G_\sigma\f$
         !! from scratch.
@@ -546,7 +525,6 @@ module equalgreens_mod
             endif
         endfunction getj
 
-
         !> \brief Decomposes the final diagonal matrix from the ASvQRD algorithm as required.
         !!
         !! The ASvQRD algorithm asks for the last diagonal \f$D\f$ matrix (stored as a vector)
@@ -574,6 +552,4 @@ module equalgreens_mod
                 endif
             enddo
         endsubroutine DbDs
-
-
 endmodule equalgreens_mod

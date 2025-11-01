@@ -102,7 +102,6 @@ module checkerboard_mod
         type(ckbcolour), allocatable :: colours(:)  !< Array of colours in checkerboard (to be allocated of length `n`)
     endtype checkerboard
 
-
     !> \brief Stores `sympair`'s of the same colour together for multiplication
     !! at the same time.
     type :: ckbcolour
@@ -122,9 +121,7 @@ module checkerboard_mod
         real(dp) :: d, ij, ji
     endtype sympair
 
-
     contains
-
 
         subroutine construct_sympair(sym, i, j, a, b)
             !
@@ -193,10 +190,7 @@ module checkerboard_mod
                 sym%ij = 0.0_dp
                 sym%ji = b
             endif
-
-
         endsubroutine construct_sympair
-
 
         subroutine right_symmult(sym, A, n, work)
             !
@@ -231,9 +225,7 @@ module checkerboard_mod
             ! work        = A(:, sym%i)
             ! A(:, sym%i) = sym%d * A(:, sym%i) + sym%ji * A(:, sym%j)
             ! A(:, sym%j) = sym%d * A(:, sym%j) + sym%ij * work
-
         endsubroutine right_symmult
-
 
         subroutine left_symmult(sym, A, n, work)
             !
@@ -268,11 +260,8 @@ module checkerboard_mod
             ! work        =         A(sym%i, :)
             ! A(sym%i, :) = sym%d * A(sym%i, :) + sym%ij * A(sym%j, :)
              !A(sym%j, :) = sym%d * A(sym%j, :) + sym%ji * work
-
-
         endsubroutine left_symmult
         
-
         subroutine initialize_ckbcolour(colour, n)
             !
             ! Gets a ckbcolour ready to store n sympairs
@@ -284,7 +273,6 @@ module checkerboard_mod
             allocate(colour%pairs(n))
 
         endsubroutine initialize_ckbcolour
-
 
         subroutine right_colourmult(colour, A, n, work)
             !
@@ -310,9 +298,7 @@ module checkerboard_mod
             do i = 1, colour%n
                 call right_symmult(colour%pairs(i), A, n, work)
             enddo
-
         endsubroutine right_colourmult
-
 
         subroutine left_colourmult(colour, A, n, work)
             !
@@ -338,9 +324,7 @@ module checkerboard_mod
             do i = colour%n, 1, -1
                 call left_symmult(colour%pairs(i), A, n, work)
             enddo
-
         endsubroutine left_colourmult
-
 
         subroutine initialize_checkerboard(ckb, n)
             !
@@ -351,9 +335,7 @@ module checkerboard_mod
 
             ckb%n = n
             allocate(ckb%colours(n))
-
         endsubroutine initialize_checkerboard
-
 
         subroutine right_ckbmult(ckb, A, n, work)
             !
@@ -384,9 +366,7 @@ module checkerboard_mod
             do i = 1, ckb%n
                 call right_colourmult(ckb%colours(i), A, n, work)
             enddo
-
         endsubroutine right_ckbmult
-
 
         subroutine left_ckbmult(ckb, A, n, work)
             !
@@ -417,9 +397,7 @@ module checkerboard_mod
             do i = ckb%n, 1, -1
                 call left_colourmult(ckb%colours(i), A, n, work)
             enddo
-
         endsubroutine left_ckbmult
-
 
         subroutine read_ckb(ckb, filename, iounit, dtau)
             !
@@ -508,7 +486,6 @@ module checkerboard_mod
             enddo
         endsubroutine read_ckb
 
-
         subroutine read_ckbT(T, N, filename, iounit, dtau)
             real(dp)          , intent(out)           :: T(N, N)
             integer           , intent(in)            :: N
@@ -557,19 +534,12 @@ module checkerboard_mod
                 enddo
             enddo
 
-
-
-
             do i = 1, N
                 do j = 1, N
                     write(6, "(f17.8)", advance="no") T(i, j)
                 enddo
                 write(6, "(a)") ""
             enddo
-        
-
         endsubroutine read_ckbT
-
-
-
+        
 endmodule checkerboard_mod

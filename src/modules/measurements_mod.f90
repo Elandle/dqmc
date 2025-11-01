@@ -33,6 +33,7 @@ module measurements_mod
     use polarization_mod
     use statistics_mod
     use iso_fortran_env, only: terminal => output_unit
+    use utilities
     implicit none
 
     type scamesr(nbin, binsize)
@@ -68,9 +69,7 @@ module measurements_mod
         real(dp) :: err(m, n)
     endtype matmesr
 
-
     contains
-
 
         !> \brief Called by the main simulation subroutine (subroutine simulate,
         !! from simulate_mod) whenever a measurement is to be performed.
@@ -99,7 +98,6 @@ module measurements_mod
             call measure_antiferro(S, i)
         endsubroutine measure
 
-
         subroutine measure_pol(S, i)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
@@ -109,7 +107,6 @@ module measurements_mod
             call measure_P(S, S%polB, S%polBZ, S%polpmeas, -1)
             S%dnpolbin(i) = S%sgn * S%polpmeas
         endsubroutine measure_pol
-
 
         !> \brief Fills the ith up and down density bin slots with the currently
         !! measured value of up and down densities.
@@ -141,7 +138,6 @@ module measurements_mod
             S%dndenbin   (i) = S%sgn * S%dndenbin   (i) / S%N
             S%totaldenbin(i) = S%sgn * S%totaldenbin(i) / S%N
         endsubroutine measure_den
-
 
         subroutine measure_kinetic(S, i)
             type(Simulation), intent(inout) :: S
@@ -176,7 +172,6 @@ module measurements_mod
             S%kineticbin(i) = S%sgn * kinetic
         endsubroutine measure_kinetic
 
-
         subroutine measure_chemical(S, i)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
@@ -192,7 +187,6 @@ module measurements_mod
 
             S%chemicalbin(i) = S%sgn * chemical
         endsubroutine measure_chemical
-
 
         subroutine measure_potential(S, i)
             type(Simulation), intent(inout) :: S
@@ -215,7 +209,6 @@ module measurements_mod
             S%potentialbin(i) = S%sgn * potential
         endsubroutine measure_potential
 
-
         subroutine measure_energy(S, i)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
@@ -225,7 +218,6 @@ module measurements_mod
                            + S%potentialbin(i)      &
                            + S%chemicalbin (i)
         endsubroutine measure_energy
-
 
         subroutine measure_den_full(S, i)
             type(Simulation), intent(inout) :: S
@@ -240,7 +232,6 @@ module measurements_mod
                 S%dndenfullbin(j, i) = S%sgn * ni(S, j, -1)
             enddo
         endsubroutine measure_den_full
-
 
         subroutine measure_doubleocc_full(S, i)
             type(Simulation), intent(inout) :: S
@@ -278,7 +269,6 @@ module measurements_mod
             enddo
         endsubroutine measure_spindenscorr
 
-
         subroutine measure_spinspincorr(S, k)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: k
@@ -297,7 +287,6 @@ module measurements_mod
                 enddo
             enddo
         endsubroutine measure_spinspincorr
-
 
         subroutine measure_antiferro(S, k)
             type(Simulation), intent(inout) :: S
@@ -323,7 +312,6 @@ module measurements_mod
             S%antiferrobin(k) = S%antiferrobin(k) * S%sgn / S%N
         endsubroutine measure_antiferro
 
-
         subroutine measure_greens(S, k)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: k
@@ -337,7 +325,6 @@ module measurements_mod
                 enddo
             enddo
         endsubroutine measure_greens
-
 
         subroutine measure_magmoment(S, k)
             ! \langle\sigma_z^2\rangle = \langle(n_{i\uparrow}-n_{i\downarrow})^2\rangle
@@ -356,7 +343,6 @@ module measurements_mod
                                       )
             enddo
         endsubroutine measure_magmoment
-
 
         real(dp) function ninj(S, i, si, j, sj)
             !
@@ -384,7 +370,6 @@ module measurements_mod
             endif
         endfunction ninj
 
-
         real(dp) function ni(S, i, spin)
             !
             ! Returns \langle n_{i\sigma} \rangle
@@ -400,7 +385,6 @@ module measurements_mod
                 ni = 1.0_dp - S%Gdn(i, i)
             endif
         endfunction ni
-
 
         real(dp) function cicdj(S, i, j, spin)
             !
@@ -418,7 +402,6 @@ module measurements_mod
             endif
         endfunction cicdj
 
-
         real(dp) function cdicj(S, i, j, spin)
             !
             ! Returns \langle c_{i\sigma}^\dagger c_{j\sigma} \rangle
@@ -435,19 +418,6 @@ module measurements_mod
             endif
         endfunction cdicj
 
-
-        integer function del(i, j)
-            integer, intent(in) :: i
-            integer, intent(in) :: j
-
-            if (i .eq. j) then
-                del = 1
-            else
-                del = 0
-            endif
-        endfunction del
-
-
         subroutine measure_sgn(S, i)
             !
             ! Fills the ith sgn bin slot with the currently measured value of sgn.
@@ -460,7 +430,6 @@ module measurements_mod
 
             S%sgnbin(i) = S%sgn
         endsubroutine measure_sgn
-
 
         subroutine avgbin(S, i)
             !
@@ -512,9 +481,7 @@ module measurements_mod
             S%energybinavgs      (i) = vector_avg(S%energybin   , S%binsize) / S%sgnbinavgs(i)
             S%antiferrobinavgs   (i) = vector_avg(S%antiferrobin, S%binsize) / S%sgnbinavgs(i)
             S%chemicalbinavgs    (i) = vector_avg(S%chemicalbin , S%binsize) / S%sgnbinavgs(i)
-
         endsubroutine avgbin
-
 
         subroutine dostatistics(S)
             !
@@ -563,8 +530,6 @@ module measurements_mod
             call jackknife(S%energybinavgs   , S%nbin, S%energyavg   , S%energyerr)
             call jackknife(S%antiferrobinavgs, S%nbin, S%antiferroavg, S%antiferroerr)
             call jackknife(S%chemicalbinavgs , S%nbin, S%chemicalavg , S%chemicalerr)
-
         endsubroutine dostatistics
-
 
 endmodule measurements_mod

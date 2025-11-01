@@ -4,14 +4,10 @@ module printing_mod
 
     integer, parameter, private :: dp = real64
 
-
     public :: print_matrix
     public :: print_vector
 
-
-
     contains
-
 
         subroutine print_matrix(A, ounit, message)
             real(dp)        , intent(in)           :: A(:, :)
@@ -34,10 +30,7 @@ module printing_mod
                 enddo
                 write(ounit, "(a)") ""
             enddo
-
-
         endsubroutine print_matrix
-
 
         subroutine print_vector(v, ounit, advance)
             real(dp), intent(in) :: v(:)
@@ -65,10 +58,7 @@ module printing_mod
                 enddo
                 write(ounit, "(a)") ""
             endif
-
-
         endsubroutine print_vector
-
 
         subroutine print_integer_matrix(A, ounit, message)
             integer         , intent(in)           :: A(:, :)
@@ -91,17 +81,6 @@ module printing_mod
                 enddo
                 write(ounit, "(a)") ""
             enddo
-
-
         endsubroutine print_integer_matrix
-
-
-
-
-
-
-
-
-
-
+        
 endmodule printing_mod

@@ -34,7 +34,6 @@ module bmult_mod
     use customla_mod
     implicit none
     contains
-    
 
         !> \brief Updates \f$A = AB_\sigma(l)\f$ using the checkerboard method.
         !!
@@ -62,7 +61,6 @@ module bmult_mod
             call right_ckbmult(S%ckb, A, S%N, S%ckbwork)
             A = exp(S%dtau * S%mu) * A
         endsubroutine right_Bmult_ckb
-
 
         !> \brief Updates \f$A = B_\sigma(l)A\f$ using the checkerboard method.
         !!
@@ -124,7 +122,6 @@ module bmult_mod
             call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
             A = exp(-S%dtau * S%mu) * A
         endsubroutine right_Binvmult_ckb
-
 
         subroutine left_Binvmult_ckb(S, A, l, sigma)
             !
@@ -190,7 +187,6 @@ module bmult_mod
 
         ! 2. Exact
 
-
         subroutine right_Bmult(S, A, l, sigma)
             !
             ! Updates:
@@ -218,7 +214,6 @@ module bmult_mod
             A = exp(S%dtau * S%mu) * A
         endsubroutine right_Bmult
 
-
         subroutine left_Bmult(S, A, l, sigma)
             !
             ! Updates:
@@ -244,7 +239,6 @@ module bmult_mod
             call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l)), S%N)
             A = exp(S%dtau * S%mu) * A
         endsubroutine left_Bmult
-
 
         subroutine right_Binvmult(S, A, l, sigma)
             !
@@ -276,7 +270,6 @@ module bmult_mod
             A = exp(-S%dtau * S%mu) * A
         endsubroutine right_Binvmult
 
-
         subroutine left_Binvmult(S, A, l, sigma)
             !
             ! Updates:
@@ -306,7 +299,6 @@ module bmult_mod
             call left_matmul(A, S%expTinv, S%N, S%qrdB)
             A = A / exp(S%dtau * S%mu)
         endsubroutine left_Binvmult
-
 
         subroutine make_B(S, A, l, sigma)
             !

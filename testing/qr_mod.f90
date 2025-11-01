@@ -12,7 +12,6 @@ module qr_mod
     integer, parameter, private :: dp       = real64
     integer, parameter, private :: terminal = output_unit
 
-
     interface
         subroutine dgeqrf(m, n, a, lda, tau, work, lwork, info)
             INTEGER            INFO, LDA, LWORK, M, N
@@ -31,9 +30,7 @@ module qr_mod
         endsubroutine dgeqp3
     end interface
 
-
     contains
-
 
         subroutine qrp(A, P, Q, R)
             !
@@ -78,10 +75,7 @@ module qr_mod
             P = jpvt_to_p(jpvt)
             Q = qr_to_q(matrix, tau)
             R = triu(matrix)
-
-
         endsubroutine qrp
-
 
         subroutine qr(A, Q, R)
             !
@@ -121,10 +115,7 @@ module qr_mod
             endif
             Q = qr_to_q(matrix, tau)
             R = triu(matrix)
-
-            
         endsubroutine qr
-
 
         function triu(A, k) result(U)
             !
@@ -150,10 +141,7 @@ module qr_mod
                     U(i, j) = A(i, j)
                 enddo
             enddo
-
-
         endfunction triu
-
 
         function qr_to_q(A, tau) result(Q)
             real(dp), intent(in) :: A(:, :)
@@ -173,10 +161,7 @@ module qr_mod
             call dorgqr(m, n, k, matrix, m, tau, work, lwork, info)
 
             Q = matrix(:, :m)
-
-
         endfunction qr_to_q
-
 
         function jpvt_to_p(jpvt) result(P)
             integer , intent(in) :: jpvt(:)
@@ -188,9 +173,5 @@ module qr_mod
             do i = 1, size(jpvt)
                 P(jpvt(i), i) = 1.0_dp
             enddo
-
-
         endfunction jpvt_to_p
-
-
 endmodule qr_mod

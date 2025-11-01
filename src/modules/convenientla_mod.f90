@@ -11,12 +11,8 @@ module convenientla_mod
     !     A = A * B
     !
     ! without having to supply a workspace
-    !
-
-
 
     contains
-
 
         subroutine right_matrixmultiply(A, B, n)
             !
@@ -38,10 +34,7 @@ module convenientla_mod
             call copy_matrix(A, C, n)
             ! A = C * B
             call dgemm('n', 'n', n, n, n, 1.0_dp, C, n, B, n, 0.0_dp, A, n)
-
-
         endsubroutine
-
 
         subroutine left_matrixmultiply(A, B, n)
             !
@@ -63,10 +56,7 @@ module convenientla_mod
             call copy_matrix(A, C, n)
             ! A = B * C
             call dgemm('n', 'n', n, n, n, 1.0_dp, B, n, C, n, 0.0_dp, A, n)
-
-
         endsubroutine
-
 
         real(dp) function twonorm(A) result(norm)
             !
@@ -92,11 +82,8 @@ module convenientla_mod
             call dlacpy('A', m, n, A, m, B, m)
             call dgesvd('N', 'N', m, n, B, m, S, work, lwork, work, lwork, work, lwork, info)
 
-            norm = S(1)
-
-            
+            norm = S(1) 
         endfunction twonorm
-
 
         subroutine dgpadm(ideg, m, t, H, ldh, wsp, lwsp, ipiv, iexph, ns, iflag)
             integer  :: ideg, m, ldh, lwsp, iexph, ns, iflag, ipiv(m)
@@ -267,7 +254,6 @@ module convenientla_mod
         endsubroutine dgpadm
         ! ----------------------------------------------------------------------|
 
-
         subroutine expm(A, exptA, t, ideg)
             !
             ! Convenient form of expokit's dgpadm (not good for heavy use)
@@ -315,9 +301,7 @@ module convenientla_mod
             call dcopy(m*m, wsp(iexpa), 1, exptA, 1)
 
             deallocate(wsp)
-
         endsubroutine expm
-
 
         function inverse(A) result(invA)
             real(dp), intent(in)  :: A(:, :)
@@ -330,20 +314,5 @@ module convenientla_mod
             call dcopy(size(A, 1)*size(A, 1), A, 1, invA, 1)
             call dgetrf(size(invA, 1), size(invA, 1), invA, size(invA, 1), P, info)
             call dgetri(size(invA, 1), invA, size(invA, 1), P, work, 4*size(invA, 1), info)
-
-
         endfunction inverse
-
-
-
-
-
-
-
-
-
-
-
-
-
 endmodule convenientla_mod

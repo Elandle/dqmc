@@ -6,9 +6,7 @@ module metropolisratios_mod
     use equalgreens_mod
     implicit none
 
-
     contains
-
 
         !> \brief Computes the Metropolis ratio \f$R_\sigma\f$ for flipping the Hubbard-Stratonivich field \f$h(i, l)\f$.
         !!
@@ -47,6 +45,5 @@ module metropolisratios_mod
                 S%Rdn     = 1.0_dp + (1.0_dp - S%Gdn(i, i)) * S%deltadn
             endif
         endsubroutine greens_R
-
 
 endmodule metropolisratios_mod

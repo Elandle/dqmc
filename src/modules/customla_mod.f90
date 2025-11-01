@@ -2,9 +2,7 @@ module customla_mod
     use numbertypes
     implicit none
 
-
     contains
-
 
         !> \brief Updates \f$A = AD\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
         !!
@@ -24,7 +22,6 @@ module customla_mod
                 call dscal(n, D(i), A(1, i), 1)
             enddo
         endsubroutine right_diagmult
-
 
         !> \brief Updates \f$A = DA\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
         !!
@@ -52,7 +49,6 @@ module customla_mod
             enddo
         endsubroutine left_diagmult
 
-
         !> \brief Updates \f$A = AD^{-1}\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
         !!
         !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
@@ -73,7 +69,6 @@ module customla_mod
                 call dscal(n, 1.0_dp / D(i), A(1, i), 1)
             enddo
         endsubroutine right_diaginvmult
-
 
         !> \brief Updates \f$A = D^{-1}A\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
         !!
@@ -103,7 +98,6 @@ module customla_mod
             enddo
         endsubroutine left_diaginvmult
 
-
         !> \brief Sets \f$D = \text{diag}(A)\f$ for a square matrix \f$A\f$ and diagonal matrix \f$D\f$ stored as a vector.
         !!
         !! \param[inout] A (`real(dp), dimension(n, n)`) \f$n\times n\f$ matrix \f$A\f$ to update.
@@ -120,7 +114,6 @@ module customla_mod
                 D(i) = A(i, i)
             enddo
         endsubroutine diag
-
 
         subroutine uppertri(A, B, n)
             !
@@ -142,12 +135,10 @@ module customla_mod
             call dlacpy('U', N, N, A, N, B, N)
         endsubroutine uppertri
 
-
         ! TODO:
         ! Compare the two permutation routines
         ! Get rid of gotos in second permutation routine
         ! Better routine?
-
 
         subroutine invert_permutation_old(P, I, n)
             !
@@ -170,7 +161,6 @@ module customla_mod
             ! Maybe:
             ! I(P) = [(j, j = 1, n)]
         endsubroutine invert_permutation_old
-
 
         subroutine invert_permutation(P, n)
             ! Knuth, The Art of Computer Programming, Volume 1
@@ -212,7 +202,6 @@ module customla_mod
                 goto 20
             endif
         endsubroutine invert_permutation
-
 
         subroutine permutecols(A, P, n)
             !
@@ -263,11 +252,9 @@ module customla_mod
             end do
         endsubroutine permutecols
 
-
         ! These following permutation algorithms are all based off the same underlying algorithm
         ! TODO:
         ! Find an inplace permutation algorithm that doesn't need an inverse permutation
-
 
         subroutine permute_matrix_columns(A, m, P, Pinv)
             real(dp), intent(inout) :: A(m, m)
@@ -301,7 +288,6 @@ module customla_mod
             enddo
         endsubroutine permute_matrix_columns
 
-
         subroutine permute_matrix_rows(A, m, P, Pinv)
             real(dp), intent(inout) :: A(m, m)
             integer , intent(in)    :: m
@@ -334,7 +320,6 @@ module customla_mod
             enddo
         endsubroutine permute_matrix_rows
 
-
         subroutine rotate_matrix_columns(P, leader, A, m)
             ! Part of permute
             integer , intent(inout) :: P(m)
@@ -355,7 +340,6 @@ module customla_mod
             enddo
         endsubroutine rotate_matrix_columns
 
-
         subroutine rotate_matrix_rows(P, leader, A, m)
             ! Part of permute
             integer , intent(inout) :: P(m)
@@ -375,7 +359,6 @@ module customla_mod
                 endif
             enddo
         endsubroutine rotate_matrix_rows
-
 
         subroutine permute(P, Pinv, x, m)
             ! Fich, Munro, and Poblete
@@ -412,7 +395,6 @@ module customla_mod
             enddo
         endsubroutine permute
 
-
         subroutine rotate(P, leader, x)
             ! Part of permute
             integer , intent(inout) :: P(:)
@@ -430,9 +412,7 @@ module customla_mod
                     i = P(i)
                 endif
             enddo
-
         endsubroutine rotate
-
 
         subroutine swap(x, i, j)
             real(dp), intent(inout) :: x(:)
@@ -445,7 +425,6 @@ module customla_mod
             x(i) = x(j)
             x(j) = temp
         endsubroutine swap
-
 
         subroutine invert(A, n, P, work, lwork, info)
             !
@@ -473,7 +452,6 @@ module customla_mod
             call dgetri(n, A, n, P, work, lwork, info)
         endsubroutine invert
 
-        
         subroutine make_identity(A, n)
             !
             ! Sets:
@@ -489,7 +467,6 @@ module customla_mod
             call dlaset('A', n, n, 0.0_dp, 1.0_dp, A, n)
         endsubroutine make_identity
 
-
         subroutine zero_matrix(A, n)
             !
             ! Sets:
@@ -502,7 +479,6 @@ module customla_mod
             ! A = 0
             call dlaset('A', n, n, 0.0_dp, 0.0_dp, A, n)
         endsubroutine zero_matrix
-
 
         !> Copies \f$B = A\f$, where \f$A\f$ and \f$B\f$ are both \f$n\times n\f$ square matrices.
         !!
@@ -517,7 +493,6 @@ module customla_mod
             ! B = A
             call dlacpy('A', n, n, A, n, B, n)
         endsubroutine copy_matrix
-
 
         subroutine add_trans(A, B, n)
             !
@@ -546,7 +521,6 @@ module customla_mod
             ! enddo
         endsubroutine add_trans
 
-
         subroutine add_matrix(A, B, n)
             !
             ! Updates:
@@ -570,7 +544,6 @@ module customla_mod
             !     enddo
             ! enddo
         endsubroutine add_matrix
-
 
         subroutine left_matmul(A, B, n, work)
             !
@@ -597,7 +570,6 @@ module customla_mod
             call dgemm('n', 'n', N, N, N, 1.0_dp, B, N, work, N, 0.0_dp, A, N)
         endsubroutine left_matmul
 
-
         subroutine right_matmul(A, B, n, work)
             !
             ! Updates:
@@ -623,7 +595,6 @@ module customla_mod
             call dgemm('n', 'n', N, N, N, 1.0_dp, work, N, B, N, 0.0_dp, A, N)
         endsubroutine right_matmul
 
-
         subroutine trans(A, B, n)
             !
             ! Sets:
@@ -645,7 +616,6 @@ module customla_mod
                 enddo
             enddo
         endsubroutine trans
-
 
         subroutine dlaswpc(n, a, lda, k1, k2, ipiv, incx)
             !
@@ -764,7 +734,6 @@ module customla_mod
             enddo
         endsubroutine colpivswap
 
-
         real(dp) function avgdiag(A, m) result(avg)
             real(dp), intent(in) :: A(m, m)
             integer , intent(in) :: m
@@ -777,7 +746,6 @@ module customla_mod
             enddo
             avg = avg / m
         endfunction avgdiag
-
 
         function matdiff(A, B, m, n, work, difftype) result(diff)
             real(dp)        , intent(in)            :: A(m, n)
@@ -808,7 +776,6 @@ module customla_mod
                 diff = sum(abs(work))
             endif
         endfunction matdiff
-
 
         subroutine determinant(det, A, n, P, info)
             !
@@ -844,7 +811,6 @@ module customla_mod
             enddo
         endsubroutine determinant
 
-
         subroutine zdeterminant(det, A, n, P, info)
             !
             ! Sets:
@@ -879,7 +845,6 @@ module customla_mod
             enddo
         endsubroutine zdeterminant
 
-
         subroutine eigenvalues(A, wr, wi)
             real(dp), intent(in)  :: A(:, :)
             real(dp), intent(out) :: wr(size(A, 1))
@@ -900,6 +865,4 @@ module customla_mod
 
             call dgeev('N', 'N', m, B, m, wr, wi, A, m, A, m, work, lwork, info)
         endsubroutine eigenvalues
-
-        
 endmodule customla_mod

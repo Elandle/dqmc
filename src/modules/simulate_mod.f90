@@ -6,6 +6,7 @@ module simulate_mod
     use measurements_mod
     use statistics_mod
     use iso_fortran_env, only: output_unit
+    use utilities
     implicit none
     !
     ! Contains procedures for carrying out a DQMC simulation in full,
@@ -34,7 +35,6 @@ module simulate_mod
                 
             enddo
         endsubroutine sweep
-
 
         !> \brief Sweeps through a slice.
         !!
@@ -82,7 +82,6 @@ module simulate_mod
             enddo
         endsubroutine sweepslice
 
-
         !> \brief Performs warmup/equilibriation sweeps and
         !! gets things ready for calling (extra setup needed the very first sweep).
         subroutine warmup(S)
@@ -118,7 +117,6 @@ module simulate_mod
                 call sweep(S)
             enddo
         endsubroutine warmup
-
 
         subroutine simulate(S)
             !
@@ -184,7 +182,6 @@ module simulate_mod
             call output(S)
         endsubroutine simulate
 
-
         subroutine debug_setup_print(S)
             type(Simulation) :: S
 
@@ -210,16 +207,13 @@ module simulate_mod
             write(S%dunit    , "(i5, a)") S%nequil, " Warmup sweeps"
             write(S%dunit    , "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
             write(S%dunit    , "(i5, a)") S%nbin, " Bins"
-
         endsubroutine debug_setup_print
-
 
         subroutine output(S)
             type(Simulation) :: S
 
             complex(dp) :: a, b, c
-
-            integer :: i, j
+            integer     :: i, j
 
             open(newunit=S%ounit, file=S%outfilename, action="write", status="replace")
 
@@ -277,47 +271,6 @@ module simulate_mod
 
             write(S%ounit, "(a)") "Bipartite matrix (entry i, j = 1 means sites i and j are on the same sublattice, -1 different) = "
             call print_integer_matrix(S%bipartsgn, S%ounit)
-
-
         endsubroutine output
-
-        subroutine abc(S)
-            type(Simulation) :: S
-
-            integer :: i, j
-            real(dp) :: sum
-
-            sum = 0.0_dp
-
-            do i = 1, S%N
-                do j = 1, S%N
-                    sum = sum + S%spindenscorravg(i, j) * ( (-1) ** (i+j))
-                enddo
-            enddo
-
-            write(output_unit, "(f17.8)") sum / S%N
-
-
-        endsubroutine abc
-
-
-        integer function sgn(x)
-            !
-            ! Returns the sign of x as an integer.
-            !
-            !     1 if x >= 0
-            !    -1 if x <  0
-            !
-            real(dp), intent(in) :: x
-
-            if (x .ge. 0.0_dp) then
-                sgn = 1
-            else
-                sgn = -1
-            endif
-
-
-        endfunction sgn
-
 
 endmodule simulate_mod

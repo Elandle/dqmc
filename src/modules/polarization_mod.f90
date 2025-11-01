@@ -6,8 +6,6 @@ module polarization_mod
 
     contains
 
-
-
         subroutine P_mult(A, B, P, N)
             !
             ! Sets:
@@ -38,10 +36,7 @@ module polarization_mod
             do i = 1, N
                 call zscal(n, P(i), A(1, i), 1)
             enddo
-
-
         endsubroutine P_mult
-
 
         subroutine newBold(S, l, sigma, B)
             !
@@ -166,7 +161,6 @@ module polarization_mod
 
 
         endsubroutine newBold
-
 
         subroutine newB(S, l, sigma, B)
             !(A, S, N, L, north, getj, make_B, left_Bmult, &
@@ -297,7 +291,6 @@ module polarization_mod
 
         endsubroutine newB
 
-
         subroutine newB2(S, l, sigma, B)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
@@ -311,10 +304,7 @@ module polarization_mod
             do j = 1, S%L
                 call left_Bmult(S, B, getj(j, S%L, l), sigma)
             enddo
-
-
         endsubroutine newB2
-
 
         subroutine measure_P(S, B, BP, p, sigma)
             !
@@ -365,9 +355,6 @@ module polarization_mod
             call zdeterminant(detBP, BP, S%N, S%qrdP, S%info)
             
             p = detBP / detB
-
         endsubroutine measure_P
-
-
 
 endmodule polarization_mod

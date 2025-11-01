@@ -20,13 +20,10 @@ module la_mod
     integer, parameter, private :: stdout = output_unit
     integer, parameter, private :: stdin = input_unit
 
-
-
     interface copy
         module procedure :: dvcopy
         module procedure :: dmcopy
     endinterface copy
-
 
     interface
         subroutine dcopy(n, dx, incx, dy, incy)
@@ -38,8 +35,6 @@ module la_mod
             integer  :: incy
         endsubroutine dcopy
     endinterface
-
-
 
     contains
 
@@ -59,7 +54,6 @@ module la_mod
 
 
         endsubroutine dvcopy
-
 
         subroutine dmcopy(A, B, m, n, trans)
             !
@@ -106,11 +100,5 @@ module la_mod
 
 
         endsubroutine dmcopy
-
-
-
-
-
-
 
 endmodule la_mod

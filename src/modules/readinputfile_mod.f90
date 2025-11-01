@@ -77,7 +77,6 @@ module readinputfile_mod
         logical :: debfilename = .false.   !< `.true.` if `debfilename` is set. `.false.` if not.
     endtype parameter_set
 
-
     contains
 
         !> \brief Reads the next line from a file.
@@ -130,7 +129,6 @@ module readinputfile_mod
             read(unit=funit, fmt="(a)", iostat=iostat) line
             line = ltrim(line)
         endsubroutine readln
-
 
         !> \brief Removes a comment from a line (if a comment is present).
         !!
@@ -197,7 +195,6 @@ module readinputfile_mod
             endif
         endfunction isasmt
 
-
         subroutine getasmnts(line, left, right, asmtop)
             character(len=*), intent(in)               :: line
             character(len=:), allocatable, intent(out) :: left
@@ -223,8 +220,6 @@ module readinputfile_mod
                 left  = ""
                 right = ""
             endif
-
-
         endsubroutine getasmnts
 
         !> \brief Removes leading and trailing blank spaces from an input string.
@@ -241,7 +236,6 @@ module readinputfile_mod
 
             ltrim = trim(adjustl(line))
         endfunction ltrim
-
 
         subroutine asnparam(left, right, param_values, param_set)
             character(len=*)             , intent(in)    :: left
@@ -293,10 +287,7 @@ module readinputfile_mod
                     param_values%debfilename = right
                     param_set%debfilename = .true.
             endselect
-
-
         endsubroutine asnparam
-
 
         subroutine printparams(param_values, ounit)
             type(parameter_values), intent(in) :: param_values
@@ -316,9 +307,7 @@ module readinputfile_mod
             write(unit=ounit, fmt="(a20, a20)")    "ckbfilename = ", param_values%ckbfilename
             write(unit=ounit, fmt="(a20, a20)")    "outfilename = ", param_values%outfilename
             write(unit=ounit, fmt="(a20, a20)")    "debfilename = ", param_values%debfilename
-
         endsubroutine printparams
-
 
         subroutine asndefaults(param_values, param_set, ounit)
             type(parameter_values), intent(inout) :: param_values
@@ -405,10 +394,7 @@ module readinputfile_mod
             if (.not. param_set%mu) then
                 write(unit=ounit, fmt="(a)") "Warning: ckbfilename not set. Simulation cannot run unless assigned."
             endif
-
-
         endsubroutine asndefaults
-
 
         subroutine readinputfile(fname, funit, ounit, param_values, param_set)
             character(len=*)      , intent(in)    :: fname
@@ -441,9 +427,6 @@ module readinputfile_mod
     
             ! assign default values (if needed)
             call asndefaults(param_values, param_set, ounit)
-
         endsubroutine readinputfile
-
-
 
 endmodule readinputfile_mod
