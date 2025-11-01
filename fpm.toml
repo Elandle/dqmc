@@ -16,6 +16,6 @@ library = false
 
 [[executable]]
 name="main"
-source-dir="dqmc"
+source-dir="./src/executables"
 main="main.f90"
 

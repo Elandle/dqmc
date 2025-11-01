@@ -1,3 +1,4 @@
+!> \brief Contains procedures for exactly computing the matrix exponential.
 module expm_mod
     use iso_fortran_env, only: real64
     implicit none
@@ -6,53 +7,54 @@ module expm_mod
 
     contains
 
-
+        !> Adapted from the expokit subroutine dgpadm
+        !!
+        !! -----Purpose----------------------------------------------------------|
+        !!
+        !!      Computes exp(t*H), the matrix exponential of a general matrix in
+        !!      full, using the irreducible rational Pade approximation to the 
+        !!      exponential function exp(x) = r(x) = (+/-)( I + 2*(q(x)/p(x)) ),
+        !!      combined with scaling-and-squaring.
+        !!
+        !! -----Arguments--------------------------------------------------------|
+        !!
+        !!      ideg           : (input) the degre of the diagonal Pade to be used.
+        !!                               a value of 6 is generally satisfactory.
+        !!
+        !!      m              : (input) order of H.
+        !!
+        !!      H(ldh,m)       : (input) argument matrix.
+        !!
+        !!      t              : (input) time-scale (can be < 0).
+        !!                  
+        !!      wsp(lwsp)      : (workspace/output) lwsp .ge. 4*m*m+ ideg+1.
+        !!
+        !!      ipiv(m)        : (workspace)
+        !!
+        !!      >>>> iexph     : (output) number such that wsp(iexph) points to exp(tH)
+        !!                                i.e., exp(tH) is located at wsp(iexph ... iexph+m*m-1)
+        !!                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        !!                                NOTE: if the routine was called with wsp(iptr), 
+        !!                                      then exp(tH) will start at wsp(iptr+iexph-1).
+        !!
+        !!      ns             : (output) number of scaling-squaring used.
+        !!
+        !!      iflag          : (output) exit flag.
+        !!                                 0 - no problem
+        !!                                <0 - problem
+        !!
+        !! ----------------------------------------------------------------------|
+        !!
+        !! Roger B. Sidje (rbs@maths.uq.edu.au)
+        !!
+        !! EXPOKIT: Software Package for Computing Matrix Exponentials.
+        !!
+        !! ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
+        !!
+        !! ----------------------------------------------------------------------|
         subroutine dgpadm(ideg, m, t, H, ldh, wsp, lwsp, ipiv, iexph, ns, iflag)
             integer  :: ideg, m, ldh, lwsp, iexph, ns, iflag, ipiv(m)
             real(dp) :: t, H(ldh,m), wsp(lwsp)
-            !
-            ! Adapted from the expokit subroutine dgpadm
-            !
-            ! -----Purpose----------------------------------------------------------|
-            !
-            !      Computes exp(t*H), the matrix exponential of a general matrix in
-            !      full, using the irreducible rational Pade approximation to the 
-            !      exponential function exp(x) = r(x) = (+/-)( I + 2*(q(x)/p(x)) ),
-            !      combined with scaling-and-squaring.
-            !
-            ! -----Arguments--------------------------------------------------------|
-            !
-            !      ideg      : (input) the degre of the diagonal Pade to be used.
-            !                 a value of 6 is generally satisfactory.
-            !
-            !      m         : (input) order of H.
-            !
-            !      H(ldh,m)  : (input) argument matrix.
-            !
-            !      t         : (input) time-scale (can be < 0).
-            !                  
-            !      wsp(lwsp) : (workspace/output) lwsp .ge. 4*m*m+ ideg+1.
-            !
-            !      ipiv(m)   : (workspace)
-            !
-            ! >>>> iexph     : (output) number such that wsp(iexph) points to exp(tH)
-            !                  i.e., exp(tH) is located at wsp(iexph ... iexph+m*m-1)
-            !                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            !                  NOTE: if the routine was called with wsp(iptr), 
-            !                        then exp(tH) will start at wsp(iptr+iexph-1).
-            !
-            !      ns        : (output) number of scaling-squaring used.
-            !
-            !      iflag     : (output) exit flag.
-            !                       0 - no problem
-            !                      <0 - problem
-            !
-            ! ----------------------------------------------------------------------|
-            !      Roger B. Sidje (rbs@maths.uq.edu.au)
-            !      EXPOKIT: Software Package for Computing Matrix Exponentials.
-            !      ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
-            ! ----------------------------------------------------------------------|
-            !
             integer  :: mm, i, j, k, ih2, ip, iq, iused, ifree, iodd, icoef, iput, iget
             real(dp) :: hnorm, scale, scale2, cp, cq
 
@@ -177,14 +179,18 @@ module expm_mod
         ! ----------------------------------------------------------------------|
 
 
+        !> Convenient form of EXPOKIT's `dgpadm` (not good for heavy use).
+        !!
+        !! Sets `exptA = exp(t*A)` with `A` unmodified using a degree `ideg`
+        !! Pade approximant in EXPOKIT's `dgpadm`.
+        !! `t` and `ideg` are optional.
+        !! By default `t = 1` and `ideg = 6` (a typical `ideg` value suggest by EXPOKIT).
+        !!
+        !! \param[in]  A     (`real(dp), dimension(:, :)`)                   Matrix to diagonalize (should be square `size(A, 1) = size(A, 2)`).
+        !! \param[out] exptA (`real(dp), dimension(size(A, 2), size(A, 2))`) Matrix to hold computed `exp(t*A)`.
+        !! \param[in]  t     (`real(dp), optional`)                          Scalar `t` in `exp(t*A)`. Default value: `1`.
+        !! \param[in]  ideg  (`integer, optional`)                           Degree of Pade approximant to use in `dgpadm`. Default value: `6`.
         subroutine expm(A, exptA, t, ideg)
-            !
-            ! Convenient form of expokit's dgpadm (not good for heavy use)
-            ! Sets exptA = exp(t*A) with A unmodified using a degree ideg
-            ! Pade approximant in expokit's dgpadm.
-            ! t and ideg are optional. By default, t = 1 and ideg = 6
-            ! (a typical one suggested by expokit).
-            !
             real(dp), intent(in)  :: A(:, :)
             real(dp), intent(out) :: exptA(size(A, 2), size(A, 2))
             real(dp), optional    :: t
@@ -224,8 +230,5 @@ module expm_mod
             call dcopy(m*m, wsp(iexpa), 1, exptA, 1)
 
             deallocate(wsp)
-
         endsubroutine expm
-
-
 endmodule expm_mod

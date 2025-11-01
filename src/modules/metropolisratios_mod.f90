@@ -32,7 +32,7 @@ module metropolisratios_mod
         !! \f$\sigma\f$ and a factor \f$\delta_\sigma\f$ needed for the quick update formula.
         !! \param[in]   i  (`integer`) Site being proposed to be flipped at.
         !! \param[in]   l  (`integer`) Imaginary time slice being proposed to be flipped at.
-        !! \param[in]   sigma (`integer`) Spin \f$\sigma\f$ (`sigma = 1` for \f$\sigma=\uparrow`, `sigma = -1` for \f$\sigma=\downarrow\f$).
+        !! \param[in]   sigma (`integer`) Spin \f$\sigma\f$ (`sigma = 1` for \f$\sigma = \uparrow\f$, `sigma = -1` for \f$\sigma=\downarrow\f$).
         subroutine greens_R(S, i, l, sigma)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
