@@ -197,13 +197,15 @@ module measurements_mod
 
             potential = 0.0_dp
             do j = 1, S%N
-                ! potential = potential + (S%Gup(j, j) - 0.5_dp) * (S%Gdn(j, j) - 0.5_dp) * S%U
-                ! potential = potential + (1.0_dp - S%Gup(j, j)) * (1.0_dp - S%Gdn(j, j))
-                potential = potential + S%U * (                                             &
-                                                           ni(S, j, 1) * ni(S, j, -1)       &
-                                              - 0.5_dp  * (ni(S, j, 1) + ni(S, j, -1))      &
-                                              + 0.25_dp                                     &
-                                              )
+                ! Particle-hole symmetric form
+                ! potential = potential + S%U * (                                             &
+                !                                            ni(S, j, 1) * ni(S, j, -1)       &
+                !                               - 0.5_dp  * (ni(S, j, 1) + ni(S, j, -1))      &
+                !                               + 0.25_dp                                     &
+                !                               )
+
+                ! Non-particle-hole symmetric form
+                potential = potential + S%U * ni(S, j, 1) * ni(S, j, -1)          
             enddo
             ! potential = potential * S%U
             S%potentialbin(i) = S%sgn * potential

@@ -16,12 +16,12 @@ import ckb
 #
 
 # only even m for now
-n = 64
+n = 8
 m = n//2
 
 t = 1
-v = 0.9
-delta = 0.8
+v = 10
+delta = 0.1
 tp = t + delta
 tm = t - delta
 
@@ -41,5 +41,5 @@ for i in range(m):
 K = K.T
 
 check = ckb.ckb(K)
-check.saveckb("hatanockb08.txt")
+check.saveckb("hatanockb01.txt")
 check.savebipartite()

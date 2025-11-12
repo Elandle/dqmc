@@ -1,12 +1,8 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.20)
 
-project(dqmc Fortran)
+project(dqmc LANGUAGES Fortran)
 
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 
-
-
-
-
-set(src "${CMAKE_SOURCE_DIR}/src")
-
-
+add_subdirectory(src)
