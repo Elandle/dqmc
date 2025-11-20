@@ -1,11 +1,10 @@
 module simulate_mod
-    use numbertypes
+    use stduse
     use simulationsetup_mod
     use equalgreens_mod
     use metropolisratios_mod
     use measurements_mod
     use statistics_mod
-    use iso_fortran_env, only: output_unit
     use utilities
     implicit none
     !
@@ -94,8 +93,8 @@ module simulate_mod
 
             ! l = 1 imaginary time sweep:
             l = 1
-            write(output_unit, "(a, i5, a)") "Warmup sweep ", 1, "..."
-            write(S%dunit    , "(a, i5, a)") "Warmup sweep ", 1, "..."
+            write(stdout, "(a, i5, a)") "Warmup sweep ", 1, "..."
+            ! write(S%dunit    , "(a, i5, a)") "Warmup sweep ", 1, "..."
             call newG(S, l, 1)
             call newG(S, l, -1)
             call sweepslice(S, l)
@@ -112,7 +111,7 @@ module simulate_mod
             enddo
 
             do i = 2, S%nequil
-                write(output_unit, "(a, i5, a)") "Warmup sweep ", i, "..."
+                write(stdout, "(a, i5, a)") "Warmup sweep ", i, "..."
                 write(S%dunit    , "(a, i5, a)") "Warmup sweep ", i, "..."
                 call sweep(S)
             enddo
@@ -127,10 +126,10 @@ module simulate_mod
             integer     :: i, j, k
 
             ! Print information about how many sweeps there are to the terminal
-            write(output_unit, "(i5, a)") S%ntotal, " Total  sweeps"
-            write(output_unit, "(i5, a)") S%nequil, " Warmup sweeps"
-            write(output_unit, "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
-            write(output_unit, "(i5, a)") S%nbin, " Bins"
+            write(stdout, "(i5, a)") S%ntotal, " Total  sweeps"
+            write(stdout, "(i5, a)") S%nequil, " Warmup sweeps"
+            write(stdout, "(i5, a)") (S%nskip + 1) * S%binsize, " Sweeps per bin (approximately)"
+            write(stdout, "(i5, a)") S%nbin, " Bins"
 
             ! For debugging, prints information about the starting simulation
             ! call debug_setup_print(S)
@@ -139,7 +138,7 @@ module simulate_mod
             call warmup(S)
 
             ! First measurement sweep right after warmup
-            write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
+            write(stdout, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", 1, " ..."
             call sweep(S)
             call measure(S, 1)
             
@@ -148,11 +147,11 @@ module simulate_mod
             do i = 2, S%binsize
                 do j = 1, S%nskip
                     ! Nonmeasured sweeps
-                    write(output_unit, "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
+                    write(stdout, "(a, i5, a, i5, a)") "Bin ", 1, " nonmeasured sweep ", j, " ..."
                     call sweep(S)
                 enddo
                 ! Measurement sweep
-                write(output_unit, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
+                write(stdout, "(a, i5, a, i5, a)")     "Bin ", 1, " measured sweep    ", i, " ..."
                 call sweep(S)
                 call measure(S, i)
             enddo
@@ -164,11 +163,11 @@ module simulate_mod
                 do i = 1, S%binsize
                     do j = 1, S%nskip
                         ! Nonmeasured sweeps
-                        write(output_unit, "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
+                        write(stdout, "(a, i5, a, i5, a)") "Bin ", k, " nonmeasured sweep ", j, " ..."
                         call sweep(S)
                     enddo
                     ! Measurement sweep
-                    write(output_unit, "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
+                    write(stdout, "(a, i5, a, i5, a)")     "Bin ", k, " measured sweep    ", i, " ..."
                     call sweep(S)
                     call measure(S, i)
                 enddo
@@ -226,15 +225,6 @@ module simulate_mod
             write(S%ounit, "(a, f17.8, a, f17.8)")   "Average PE                                 = ", S%potentialavg   , " +- ", S%potentialerr
             write(S%ounit, "(a, f17.8, a, f17.8)")   "Average E                                  = ", S%energyavg      , " +- ", S%energyerr
             write(S%ounit, "(a, f17.8, a, f17.8)")   "Average antiferromagnetic structure factor = ", S%antiferroavg   , " +- ", S%antiferroerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uppol                              = ", S%uppolavg       , " +- ", S%uppolerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnpol                              = ", S%dnpolavg       , " +- ", S%dnpolerr
-            a = -(S%L**2)/(((2*4*atan(1.0_dp))**2)*S%N)
-            b = a * log(S%uppolavg)**2
-            c = abs(2 * a * log(b) / b) * S%uppolerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average uplambda^2                         = ", b, " +- ", c
-            b = a * log(S%dnpolavg)**2
-            c = abs(2 * a * log(b) / b) * S%dnpolerr
-            write(S%ounit, "(a, 2f17.8, a, 2f17.8)") "Average dnlambda^2                         = ", b, " +- ", c
             write(S%ounit, "(a)")                    "Gup                                        = "
             call print_matrix(S%Gupavg, S%ounit)
             write(S%ounit, "(a)") "+-"
@@ -251,7 +241,6 @@ module simulate_mod
             call print_matrix(S%spinspincorravg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_matrix(S%spinspincorrerr, S%ounit)
-            ! call abc(S)
             write(S%ounit, "(a)")                    "Average upden (full)                       = "
             call print_vector(S%updenfullavg, S%ounit)
             write(S%ounit, "(a)") "+-"
@@ -268,9 +257,6 @@ module simulate_mod
             call print_vector(S%magmomentavg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_vector(S%magmomenterr, S%ounit)
-
-            write(S%ounit, "(a)") "Bipartite matrix (entry i, j = 1 means sites i and j are on the same sublattice, -1 different) = "
-            call print_integer_matrix(S%bipartsgn, S%ounit)
         endsubroutine output
 
 endmodule simulate_mod

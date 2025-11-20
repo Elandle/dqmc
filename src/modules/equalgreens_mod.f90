@@ -12,18 +12,16 @@
     !! bmult_mod uses the checkerboard method to approximate \f$\exp(\Delta\tau T)\f$ and \f$\exp(\Delta\tau T)^{-1}\f$,
     !! while bmultexact_mod uses no approximation (but runs much slower).
 module equalgreens_mod
-    use numbertypes
+    use stduse
     use blas_interface
     use lapack_interface
     use simulationsetup_mod
     use bmult_mod
     use printing_mod
     use customla_mod
-    use iso_fortran_env, only: output_unit
     use utilities
     ! use bmultexact_mod
     implicit none
-    integer, parameter, private :: terminal = output_unit
 
     contains
 
@@ -186,19 +184,11 @@ module equalgreens_mod
             integer         , intent(in)    :: sigma
 
             if (sigma .eq. 1) then      ! up spin (sigma = 1)
-                ! Fast
                 call right_Binvmult(S, S%Gup, l, sigma)
                 call left_Bmult(S, S%Gup, l, sigma)
-                ! Slow
-                ! call right_Binvmultexact(S, S%Gup, l, sigma)
-                ! call left_Bmultexact(S, S%Gup, l, sigma)
             else                        ! dn spin (sigma = -1)
-                ! Fast
                 call right_Binvmult(S, S%Gdn, l, sigma)
                 call left_Bmult(S, S%Gdn, l, sigma)
-                ! Slow
-                ! call right_Binvmultexact(S, S%Gdn, l, sigma)
-                ! call left_Bmultexact(S, S%Gdn, l, sigma)
             endif
         endsubroutine wrap
 
@@ -240,10 +230,10 @@ module equalgreens_mod
                     ! call compareG(S, l, diff, sigma, keep=.true.)
 
                     ! Present for debugging ---------------------------------------
-                    ! write(terminal, "(a, f17.8)") "Gup newG and wrap diff = ", diff
-                    ! call print_matrix(S%Gup - wrapG, terminal, "Gup - wrap G = ")
-                    ! call print_matrix(S%Gup, terminal, "Gup = ")
-                    ! call print_matrix(wrapG, terminal, "wrap Gup = ")
+                    ! write(stdout, "(a, f17.8)") "Gup newG and wrap diff = ", diff
+                    ! call print_matrix(S%Gup - wrapG, stdout, "Gup - wrap G = ")
+                    ! call print_matrix(S%Gup, stdout, "Gup = ")
+                    ! call print_matrix(wrapG, stdout, "wrap Gup = ")
                     ! -------------------------------------------------------------
                     
                     ! Only make a G from scratch
@@ -267,10 +257,10 @@ module equalgreens_mod
                     ! call compareG(S, l, diff, sigma, keep=.true.)
 
                     ! Present for debugging ---------------------------------------
-                    ! write(terminal, "(a, f17.8)") "Gdn newG and wrap diff = ", diff
-                    ! call print_matrix(S%Gdn - wrapG, terminal, "Gdn - wrap G = ")
-                    ! call print_matrix(S%Gdn, terminal, "Gdn = ")
-                    ! call print_matrix(wrapG, terminal, "wrap Gdn = ")
+                    ! write(stdout, "(a, f17.8)") "Gdn newG and wrap diff = ", diff
+                    ! call print_matrix(S%Gdn - wrapG, stdout, "Gdn - wrap G = ")
+                    ! call print_matrix(S%Gdn, stdout, "Gdn = ")
+                    ! call print_matrix(wrapG, stdout, "wrap Gdn = ")
                     ! -------------------------------------------------------------
                     
                     ! Only make a G from scratch

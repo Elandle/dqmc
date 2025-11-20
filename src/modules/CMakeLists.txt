@@ -10,7 +10,7 @@ add_library(dqmc
       ${CMAKE_CURRENT_SOURCE_DIR}/lapack_interface_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/measurements_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/metropolisratios_mod.f90
-      ${CMAKE_CURRENT_SOURCE_DIR}/numbertypes.f90
+      ${CMAKE_CURRENT_SOURCE_DIR}/stduse.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/polarization_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/printing_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/readinputfile_mod.f90

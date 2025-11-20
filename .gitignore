@@ -42,6 +42,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+cmakebuild/
+cmakebuild2/
 develop-eggs/
 dist/
 downloads/

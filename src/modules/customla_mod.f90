@@ -1,5 +1,7 @@
 module customla_mod
-    use numbertypes
+    use stduse
+    use blas_interface
+    use lapack_interface
     implicit none
 
     contains
@@ -562,7 +564,7 @@ module customla_mod
             real(dp), intent(inout) :: A(n, n)
             real(dp), intent(in)    :: B(n, n)
             integer , intent(in)    :: n
-            real(dp), intent(in)    :: work(n, n)
+            real(dp), intent(out)   :: work(n, n)
             
             ! work = A
             call dlacpy('a', N, N, A, N, work, N)
@@ -587,7 +589,7 @@ module customla_mod
             real(dp), intent(inout) :: A(n, n)
             real(dp), intent(in)    :: B(n, n)
             integer , intent(in)    :: n
-            real(dp), intent(in)    :: work(n, n)
+            real(dp), intent(out)   :: work(n, n)
             
             ! work = A
             call dlacpy('a', N, N, A, N, work, N)
@@ -755,7 +757,7 @@ module customla_mod
             real(dp)        , intent(out)           :: work(m, n)
             character(len=*), intent(in) , optional :: difftype
 
-            real(dp)    , external    :: dlange
+            ! real(dp)    , external    :: dlange
             real(dp)                  :: diff
             character(:), allocatable :: actualdifftype
 
@@ -766,12 +768,14 @@ module customla_mod
             endif
 
             work = A - B
+            ! Second work is never referenced in calling dlange (it is
+            ! only needed when norm = 'I')
             if     (actualdifftype .eq. "difflim") then
-                diff = dlange('F', m, n, work, m, work, m) / (m * n)
+                diff = dlange('F', m, n, work, m, work) / (m * n)
             elseif (actualdifftype .eq. "maxabs") then
-                diff = dlange('M', m, n, work, m, work, m)
+                diff = dlange('M', m, n, work, m, work)
             elseif (actualdifftype .eq. "frobenius") then
-                diff = dlange('F', m, n, work, m, work, m)
+                diff = dlange('F', m, n, work, m, work)
             elseif (actualdifftype .eq. "abssum") then
                 diff = sum(abs(work))
             endif
@@ -863,6 +867,29 @@ module customla_mod
             call copy_matrix(A, B, m)
 
 
-            call dgeev('N', 'N', m, B, m, wr, wi, A, m, A, m, work, lwork, info)
+            call dgeev('N', 'N', m, B, m, wr, wi, B, m, B, m, work, lwork, info)
         endsubroutine eigenvalues
+
+
+        subroutine diagonalize(A, wr, wi, V)
+            real(dp), intent(in)  :: A(:, :)
+            real(dp), intent(out) :: wr(size(A, 1))
+            real(dp), intent(out) :: wi(size(A, 1))
+            real(dp), intent(out) :: V(size(A, 1), size(A, 1))
+
+            integer :: m
+            real(dp), allocatable :: B(:, :)
+            real(dp), allocatable :: work(:)
+            integer               :: lwork
+            integer               :: info
+
+            m = size(A, 1)
+            lwork = 8 * m
+            allocate(B(m, m))
+            allocate(work(lwork))
+            call copy_matrix(A, B, m)
+
+
+            call dgeev('N', 'V', m, B, m, wr, wi, B, m, V, m, work, lwork, info)
+        endsubroutine diagonalize
 endmodule customla_mod

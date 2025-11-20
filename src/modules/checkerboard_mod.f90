@@ -90,10 +90,8 @@
     !!
     !! Or this extraction process can easily be added to the checkerboard method code
 module checkerboard_mod
-    use iso_fortran_env, only: real64
+    use stduse
     implicit none
-
-    integer, parameter, private :: dp = real64
 
     !> \brief Stores `ckbcolour`'s for checkerboard multiplication by iterating
     !! through multiplying by different colours.

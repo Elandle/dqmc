@@ -1,5 +1,5 @@
 module polarization_mod
-    use numbertypes
+    use stduse
     use simulationsetup_mod
     use equalgreens_mod
     implicit none
@@ -340,21 +340,96 @@ module polarization_mod
             ! by LU
 
             ! B = B(L) * ... * B(1)
-            call newB(S, S%L, sigma, B)
+            ! call newB(S, S%L, sigma, B)
             ! BP = B * exp(2*pi*i/L) * P
-            call P_mult(BP, B, S%polP, S%N)
+            ! call P_mult(BP, B, S%polP, S%N)
 
             ! B  = B  + id
             ! BP = BP + id
-            do i = 1, S%N
-                B (i, i) = B (i, i) + 1.0_dp
-                BP(i, i) = BP(i, i) + 1.0_dp
-            enddo
+            ! do i = 1, S%N
+            !     B (i, i) = B (i, i) + 1.0_dp
+            !     BP(i, i) = BP(i, i) + 1.0_dp
+            ! enddo
 
-            call  determinant(detB , B , S%N, S%qrdP, S%info)
-            call zdeterminant(detBP, BP, S%N, S%qrdP, S%info)
+            ! call  determinant(detB , B , S%N, S%qrdP, S%info)
+            ! call zdeterminant(detBP, BP, S%N, S%qrdP, S%info)
             
-            p = detBP / detB
+            ! p = detBP / detB
         endsubroutine measure_P
+
+
+        subroutine make_P(P, L, N, x)
+            !
+            ! Sets:
+            !
+            !       P = exp(2*pi*i/L) * P
+            !
+            ! where the P on the right-hand side of assignment is the geometry-dependent
+            ! polarization (diagonal) matrix (stored as a vector) P.
+            !
+            ! Currently hardcoded for a square lattice with x sites in the x direction
+            ! (number of sites in the y direction is not needed)
+            !
+            !
+            ! max = x / 2 (floored half)
+            !
+            ! For even x, site distances have the pattern (example for x=6):
+            !
+            ! 1 --- 2 --- 3 --- 4 --- 5 --- 6
+            ! 0     1     2     3     2     1
+            !
+            !
+            ! For odd x, site distances have the pattern (example for x=7):
+            !
+            ! 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7
+            ! 0     1     2     3     3     2     1
+            !
+            complex(dp), intent(out) :: P(N)
+            integer    , intent(in)  :: L
+            integer    , intent(in)  :: N
+            integer    , intent(in)  :: x
+
+            integer  :: i, j, inc, max, min
+            logical  :: odd
+            real(dp) :: pi
+
+            if (mod(x, 2) .eq. 0) then
+                odd = .false.
+            else
+                odd = .true.
+            endif
+
+            max = x / 2
+            min = 0
+            inc = -1
+            j   = min
+            i   = 1
+
+            if (N .eq. 1) then
+                j = 1
+                P(1) = complex(real(j, dp), 0.0_dp)
+            else
+                do
+                    P(i) = complex(real(j, dp), 0.0_dp)
+                    if (odd .and. (j .eq. max)) then
+                        i = i + 1
+                        P(i) = P(i-1)
+                    endif
+                    if ((j .eq. max) .and. (inc .eq. 1)) then
+                        inc = -1
+                    elseif ((j .eq. min) .and. (inc .eq. -1)) then
+                        inc = 1
+                    endif
+                    j = j + inc
+                    if (i .eq. N) then
+                        exit
+                    endif
+                    i = i + 1
+                enddo
+            endif
+
+            pi = 4 * atan(1.0_dp)
+            P  = exp(complex(0.0_dp, 2.0_dp * pi / L)) * P
+        endsubroutine make_P
 
 endmodule polarization_mod

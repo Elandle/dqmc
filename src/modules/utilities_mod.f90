@@ -1,10 +1,10 @@
 module utilities
-    use numbertypes
+    use stduse
     implicit none
 
     contains
 
-        integer function sgn(x)
+        pure elemental integer function sgn(x)
             !
             ! Returns the sign of x as an integer.
             !
@@ -20,7 +20,7 @@ module utilities
             endif
         endfunction sgn
 
-        integer function del(i, j)
+        pure elemental integer function del(i, j)
             integer, intent(in) :: i
             integer, intent(in) :: j
 

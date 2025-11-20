@@ -1,9 +1,7 @@
 !> \brief Contains procedures for exactly computing the matrix exponential.
 module expm_mod
-    use iso_fortran_env, only: real64
+    use stduse
     implicit none
-
-    integer, parameter, private :: dp = real64
 
     contains
 

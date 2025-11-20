@@ -1,6 +1,6 @@
 !> \brief Contains procedures for doing statistics on data.
 module statistics_mod
-    use numbertypes
+    use stduse
     implicit none
 
     interface vector_avg
@@ -30,7 +30,7 @@ module statistics_mod
         !! \param[in] x   (`real(sp), dimension(n)`) Vector to take average of entries.
         !! \param[in] n   (`integer`)                Dimension of x
         !! \result    avg (`real(sp)`)               Average value of entries of x
-        real(dp) function svector_avg(x, n)
+        pure real(dp) function svector_avg(x, n)
             real(sp), intent(in) :: x(n)
             integer , intent(in) :: n
 
@@ -45,7 +45,7 @@ module statistics_mod
         !! \param[in] x   (`real(dp), dimension(n)`) Vector to take average of entries.
         !! \param[in] n   (`integer`)                Dimension of x
         !! \result    avg (`real(dp)`)               Average value of entries of x
-        real(dp) function dvector_avg(x, n)
+        pure real(dp) function dvector_avg(x, n)
             real(dp), intent(in) :: x(n)
             integer , intent(in) :: n
 
@@ -60,7 +60,7 @@ module statistics_mod
         !! \param[in] x   (`complex(sp), dimension(n)`) Vector to take average of entries.
         !! \param[in] n   (`integer`)                   Dimension of x
         !! \result    avg (`complex(sp)`)               Average value of entries of x
-        complex(dp) function cvector_avg(x, n)
+        pure complex(dp) function cvector_avg(x, n)
             complex(sp), intent(in) :: x(n)
             integer    , intent(in) :: n
 
@@ -75,7 +75,7 @@ module statistics_mod
         !! \param[in] x   (`complex(dp), dimension(n)`) Vector to take average of entries.
         !! \param[in] n   (`integer`)                   Dimension of x
         !! \result    avg (`complex(dp)`)               Average value of entries of x
-        complex(dp) function zvector_avg(x, n) 
+        pure complex(dp) function zvector_avg(x, n) 
             complex(dp), intent(in) :: x(n)
             integer    , intent(in) :: n
 
@@ -118,7 +118,7 @@ module statistics_mod
         !! \param[in]  n    (`integer`)                Dimension of `x`.
         !! \param[out] avg  (`real(dp)`)               Variable to hold the computed Jackknife average.
         !! \param[out] err  (`real(dp)`)               Variable to hold the computed Jackknife error.
-        subroutine djackknife(x, n, avg, err)
+        pure subroutine djackknife(x, n, avg, err)
             real(dp), intent(in)  :: x(n)
             integer , intent(in)  :: n
             real(dp), intent(out) :: avg, err
@@ -157,7 +157,7 @@ module statistics_mod
         !! \param[in]  n    (`integer`)                   Dimension of `x`.
         !! \param[out] avg  (`complex(dp)`)               Variable to hold the computed Jackknife average.
         !! \param[out] err  (`complex(dp)`)               Variable to hold the computed Jackknife error.
-        subroutine zjackknife(x, n, avg, err)
+        pure subroutine zjackknife(x, n, avg, err)
             complex(dp), intent(in)  :: x(n)
             integer    , intent(in)  :: n
             complex(dp), intent(out) :: avg, err

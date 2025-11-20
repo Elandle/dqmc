@@ -14,11 +14,10 @@
     !! procedure. A list of dependencies on `S` for calling various procedures for
     !! testing intends to be developed.
 module simulationsetup_mod
-    use numbertypes
+    use stduse
     use readinputfile_mod
     use checkerboard_mod
     use convenientla_mod
-    use iso_fortran_env, only: stdout => output_unit
     implicit none
 
     !> \brief Main datatype for running simulations.
@@ -138,20 +137,6 @@ module simulationsetup_mod
         real(dp), allocatable :: spindenscorrbinavgs(:, :, :) ! (N x N x nbin)
         real(dp), allocatable :: spindenscorravg(:, :)        ! (N x N)
         real(dp), allocatable :: spindenscorrerr(:, :)        ! (N x N)
-
-        complex(dp), allocatable :: polP(:)                   ! (N)
-        real   (dp), allocatable :: polB(:, :)                ! (N x N)
-        complex(dp), allocatable :: polBZ(:, :)               ! (N x N)
-        complex(dp)              :: polpmeas
-
-        complex(dp), allocatable :: uppolbin(:)               ! (binsize)
-        complex(dp), allocatable :: dnpolbin(:)               ! (binsize)
-        complex(dp), allocatable :: uppolbinavgs(:)           ! (nbin)
-        complex(dp), allocatable :: dnpolbinavgs(:)           ! (nbin)
-        complex(dp)              :: uppolavg
-        complex(dp)              :: dnpolavg
-        complex(dp)              :: uppolerr
-        complex(dp)              :: dnpolerr
 
         real(dp), allocatable :: updenfullbin(:, :)           ! (N x binsize)
         real(dp), allocatable :: dndenfullbin(:, :)           ! (N x binsize)
@@ -324,16 +309,6 @@ module simulationsetup_mod
             allocate(S%spindenscorravg(N, N))
             allocate(S%spindenscorrerr(N, N))
 
-            allocate(S%polP(N))
-            allocate(S%polB(N, N))
-            allocate(S%polBZ(N, N))
-            call make_P(S%polP, L, N, int(sqrt(real(N, dp))))
-
-            allocate(S%uppolbin(S%binsize))
-            allocate(S%dnpolbin(S%binsize))
-            allocate(S%uppolbinavgs(S%nbin))
-            allocate(S%dnpolbinavgs(S%nbin))
-
             allocate(S%updenfullbin(N, S%binsize))
             allocate(S%dndenfullbin(N, S%binsize))
             allocate(S%updenfullbinavgs(N, S%nbin))
@@ -425,79 +400,6 @@ module simulationsetup_mod
             call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
         endsubroutine setup_simulation
 
-        subroutine make_P(P, L, N, x)
-            !
-            ! Sets:
-            !
-            !       P = exp(2*pi*i/L) * P
-            !
-            ! where the P on the right-hand side of assignment is the geometry-dependent
-            ! polarization (diagonal) matrix (stored as a vector) P.
-            !
-            ! Currently hardcoded for a square lattice with x sites in the x direction
-            ! (number of sites in the y direction is not needed)
-            !
-            !
-            ! max = x / 2 (floored half)
-            !
-            ! For even x, site distances have the pattern (example for x=6):
-            !
-            ! 1 --- 2 --- 3 --- 4 --- 5 --- 6
-            ! 0     1     2     3     2     1
-            !
-            !
-            ! For odd x, site distances have the pattern (example for x=7):
-            !
-            ! 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7
-            ! 0     1     2     3     3     2     1
-            !
-            complex(dp), intent(out) :: P(N)
-            integer    , intent(in)  :: L
-            integer    , intent(in)  :: N
-            integer    , intent(in)  :: x
-
-            integer  :: i, j, inc, max, min
-            logical  :: odd
-            real(dp) :: pi
-
-            if (mod(x, 2) .eq. 0) then
-                odd = .false.
-            else
-                odd = .true.
-            endif
-
-            max = x / 2
-            min = 0
-            inc = -1
-            j   = min
-            i   = 1
-
-            if (N .eq. 1) then
-                j = 1
-                P(1) = complex(real(j, dp), 0.0_dp)
-            else
-                do
-                    P(i) = complex(real(j, dp), 0.0_dp)
-                    if (odd .and. (j .eq. max)) then
-                        i = i + 1
-                        P(i) = P(i-1)
-                    endif
-                    if ((j .eq. max) .and. (inc .eq. 1)) then
-                        inc = -1
-                    elseif ((j .eq. min) .and. (inc .eq. -1)) then
-                        inc = 1
-                    endif
-                    j = j + inc
-                    if (i .eq. N) then
-                        exit
-                    endif
-                    i = i + 1
-                enddo
-            endif
-
-            pi = 4 * atan(1.0_dp)
-            P  = exp(complex(0.0_dp, 2.0_dp * pi / L)) * P
-        endsubroutine make_P
 
         subroutine setup_simulation_input(S, fname, funit, ounit)
             type(Simulation), intent(inout) :: S

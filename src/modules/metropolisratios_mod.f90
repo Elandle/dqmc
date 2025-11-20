@@ -1,7 +1,7 @@
 !> \brief Contains procedures for calculating the Metropolis ratio \f$R=R_\uparrow R_\downarrow\f$
 !! that is used for determining whether or not a flip in the Hubbard-Stratonovich field \f$h\f$ is accepted.
 module metropolisratios_mod
-    use numbertypes
+    use stduse
     use simulationsetup_mod
     use equalgreens_mod
     implicit none

@@ -1,4 +1,5 @@
 import numpy
+import scipy
 import ckb
 
 # 2d Hatano Nelson
@@ -20,7 +21,7 @@ n = 8
 m = n//2
 
 t = 1
-v = 10
+v = 1
 delta = 0.1
 tp = t + delta
 tm = t - delta
@@ -41,5 +42,5 @@ for i in range(m):
 K = K.T
 
 check = ckb.ckb(K)
-check.saveckb("hatanockb01.txt")
+check.saveckb("d01v1ckb.txt")
 check.savebipartite()

@@ -1,15 +1,26 @@
 module printing_mod
-    use iso_fortran_env, only: real64
+    use stduse
     implicit none
 
-    integer, parameter, private :: dp = real64
+    character(len=*), parameter :: dmatrixfmt = "(f17.8)"
+    character(len=*), parameter :: dvectorfmt = "(f17.8)"
+    character(len=*), parameter :: ivectorfmt = "(i6)"
+    character(len=*), parameter :: imatrixfmt = "(i6)"
 
-    public :: print_matrix
-    public :: print_vector
+    interface print_matrix
+        module procedure :: print_dmatrix
+        module procedure :: print_imatrix
+    endinterface
 
+    interface print_vector
+        module procedure :: print_dvector
+        module procedure :: print_ivector
+    endinterface
+
+    
     contains
 
-        subroutine print_matrix(A, ounit, message)
+        subroutine print_dmatrix(A, ounit, message)
             real(dp)        , intent(in)           :: A(:, :)
             integer         , intent(in)           :: ounit
             character(len=*), intent(in), optional :: message
@@ -25,19 +36,18 @@ module printing_mod
 
             do i = 1, m
                 do j = 1, n
-                    write(ounit, "(f17.8)", advance="no") A(i, j)
-                    ! write(ounit, "(e17.8)", advance="no") A(i, j)
+                    write(unit=ounit, fmt=dmatrixfmt, advance="no") A(i, j)
                 enddo
-                write(ounit, "(a)") ""
+                write(unit=ounit, fmt="(a)") ""
             enddo
-        endsubroutine print_matrix
+        endsubroutine print_dmatrix
 
-        subroutine print_vector(v, ounit, advance)
+        subroutine print_dvector(v, ounit, advance)
             real(dp), intent(in) :: v(:)
             integer , intent(in) :: ounit
             logical , optional   :: advance
             
-            integer :: m, n, i, j
+            integer :: m, i
             logical :: adv
 
             if (present(advance)) then
@@ -50,17 +60,45 @@ module printing_mod
 
             if (adv) then
                 do i = 1, m
-                    write(ounit, "(f17.8)") v(i)
+                    write(unit=ounit, fmt=dvectorfmt) v(i)
                 enddo
             else
                 do i = 1, m
-                    write(ounit, "(f17.8)", advance="no") v(i)
+                    write(unit=ounit, fmt=dvectorfmt, advance="no") v(i)
                 enddo
-                write(ounit, "(a)") ""
+                write(unit=ounit, fmt="(a)") ""
             endif
-        endsubroutine print_vector
+        endsubroutine print_dvector
 
-        subroutine print_integer_matrix(A, ounit, message)
+        subroutine print_ivector(v, ounit, advance)
+            integer, intent(in) :: v(:)
+            integer, intent(in) :: ounit
+            logical, optional   :: advance
+            
+            integer :: m, i
+            logical :: adv
+
+            if (present(advance)) then
+                adv = advance
+            else
+                adv = .false.
+            endif
+
+            m = size(v)
+
+            if (adv) then
+                do i = 1, m
+                    write(unit=ounit, fmt=ivectorfmt) v(i)
+                enddo
+            else
+                do i = 1, m
+                    write(unit=ounit, fmt=ivectorfmt, advance="no") v(i)
+                enddo
+                write(unit=ounit, fmt="(a)") ""
+            endif
+        endsubroutine print_ivector
+
+        subroutine print_imatrix(A, ounit, message)
             integer         , intent(in)           :: A(:, :)
             integer         , intent(in)           :: ounit
             character(len=*), intent(in), optional :: message
@@ -76,11 +114,10 @@ module printing_mod
 
             do i = 1, m
                 do j = 1, n
-                    write(ounit, "(i6)", advance="no") A(i, j)
-                    ! write(ounit, "(e17.8)", advance="no") A(i, j)
+                    write(unit=ounit, fmt=imatrixfmt, advance="no") A(i, j)
                 enddo
                 write(ounit, "(a)") ""
             enddo
-        endsubroutine print_integer_matrix
+        endsubroutine print_imatrix
         
 endmodule printing_mod

@@ -14,8 +14,7 @@
 !! To print the contents: <br>
 !! `call printparams(param_values, ounit)`
 module readinputfile_mod
-    use numbertypes
-    use iso_fortran_env, only: iostat_end
+    use stduse
     implicit none
     !
     ! Basic usage:
@@ -279,13 +278,13 @@ module readinputfile_mod
                     param_set%mu = .true.
                 case("ckbfilename")
                     param_values%ckbfilename = right
-                    param_set%ckbfilename = .true.
+                    param_set   %ckbfilename = .true.
                 case("outfilename")
                     param_values%outfilename = right
-                    param_set%outfilename = .true.
+                    param_set   %outfilename = .true.
                 case("debfilename")
                     param_values%debfilename = right
-                    param_set%debfilename = .true.
+                    param_set   %debfilename = .true.
             endselect
         endsubroutine asnparam
 
@@ -391,7 +390,7 @@ module readinputfile_mod
                 param_values%mu = mu_default
                 param_set%mu    = .true.
             endif
-            if (.not. param_set%mu) then
+            if (.not. param_set%ckbfilename) then
                 write(unit=ounit, fmt="(a)") "Warning: ckbfilename not set. Simulation cannot run unless assigned."
             endif
         endsubroutine asndefaults

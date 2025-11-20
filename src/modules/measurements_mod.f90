@@ -28,11 +28,9 @@
     !! average of the sign of determinants (Metropolis ratios) that was present
     !! when each measurement was being collected.
 module measurements_mod
-    use numbertypes
+    use stduse
     use simulationsetup_mod
-    use polarization_mod
     use statistics_mod
-    use iso_fortran_env, only: terminal => output_unit
     use utilities
     implicit none
 
@@ -87,7 +85,6 @@ module measurements_mod
             call measure_spindenscorr(S, i)
             call measure_spinspincorr(S, i)
             call measure_greens(S, i)
-            call measure_pol(S, i)
             call measure_den_full(S, i)
             call measure_doubleocc_full(S, i)
             call measure_kinetic(S, i)
@@ -97,16 +94,6 @@ module measurements_mod
             call measure_magmoment(S, i)
             call measure_antiferro(S, i)
         endsubroutine measure
-
-        subroutine measure_pol(S, i)
-            type(Simulation), intent(inout) :: S
-            integer         , intent(in)    :: i
-
-            call measure_P(S, S%polB, S%polBZ, S%polpmeas,  1)
-            S%uppolbin(i) = S%sgn * S%polpmeas
-            call measure_P(S, S%polB, S%polBZ, S%polpmeas, -1)
-            S%dnpolbin(i) = S%sgn * S%polpmeas
-        endsubroutine measure_pol
 
         !> \brief Fills the ith up and down density bin slots with the currently
         !! measured value of up and down densities.
@@ -128,8 +115,6 @@ module measurements_mod
             S%dndenbin   (i) = 0.0_dp
             S%totaldenbin(i) = 0.0_dp
             do j = 1, S%N
-                ! S%updenbin(i) = S%updenbin(i) + 1.0_dp - S%Gup(j, j)
-                ! S%dndenbin(i) = S%dndenbin(i) + 1.0_dp - S%Gdn(j, j)
                 S%updenbin   (i) = S%updenbin   (i) + ni(S, j,  1)
                 S%dndenbin   (i) = S%dndenbin   (i) + ni(S, j, -1)
                 S%totaldenbin(i) = S%totaldenbin(i) + ni(S, j,  1) + ni(S, j, -1)
@@ -161,13 +146,6 @@ module measurements_mod
                                       - S%T(j, k) * cdicj(S, j, k, -1)
                 enddo
             enddo
-
-            ! kinmuup = 0.0_dp; kinmudn = 0.0_dp
-            ! do j = 1, S%N
-            !     kinmuup = kinmuup + 1.0_dp - S%Gup(j, j) !  + S%U / 2.0_dp
-            !     kinmudn = kinmudn + 1.0_dp - S%Gdn(j, j) !  + S%U / 2.0_dp
-            ! enddo
-            ! kinetic = kinetic - S%mu * kinmuup - S%mu * kinmudn
 
             S%kineticbin(i) = S%sgn * kinetic
         endsubroutine measure_kinetic
@@ -228,8 +206,6 @@ module measurements_mod
             integer :: j
 
             do j = 1, S%N
-                ! S%updenfullbin(j, i) = S%sgn * (1.0_dp - S%Gup(j, j))
-                ! S%dndenfullbin(j, i) = S%sgn * (1.0_dp - S%Gdn(j, j))
                 S%updenfullbin(j, i) = S%sgn * ni(S, j,  1)
                 S%dndenfullbin(j, i) = S%sgn * ni(S, j, -1)
             enddo
@@ -242,7 +218,6 @@ module measurements_mod
             integer :: j
 
             do j = 1, S%N
-                ! S%doubleoccfullbin(j, i) = S%sgn * (1.0_dp - S%Gup(j, j)) * (1.0_dp - S%Gdn(j, j))
                 S%doubleoccfullbin(j, i) = S%sgn * ninj(S, j, 1, j, -1)
             enddo
         endsubroutine measure_doubleocc_full
@@ -263,8 +238,6 @@ module measurements_mod
 
             do j = 1, S%N
                 do i = 1, S%N
-                    ! S%spindenscorrbin(i, j, k) = S%sgn * ((del(i, j) - S%Gup(j, i)) * S%Gdn(i, j) &
-                    !                                    +  (del(i, j) - S%Gdn(j, i)) * S%Gup(i, j))
                     S%spindenscorrbin(i, j, k) = S%sgn * ((del(i, j) - S%Gup(j, i)) * S%Gdn(i, j) &
                                                        +  (del(i, j) - S%Gdn(j, i)) * S%Gup(i, j))
                 enddo
@@ -448,8 +421,6 @@ module measurements_mod
             S%sgnbinavgs     (i) = real(sum(S%sgnbin), dp)  / S%binsize
             S%updenbinavgs   (i) =  vector_avg(S%updenbin   , S%binsize) / S%sgnbinavgs(i)
             S%dndenbinavgs   (i) =  vector_avg(S%dndenbin   , S%binsize) / S%sgnbinavgs(i)
-            S%uppolbinavgs   (i) = zvector_avg(S%uppolbin   , S%binsize) / S%sgnbinavgs(i)
-            S%dnpolbinavgs   (i) = zvector_avg(S%dnpolbin   , S%binsize) / S%sgnbinavgs(i)
             S%totaldenbinavgs(i) =  vector_avg(S%totaldenbin, S%binsize) / S%sgnbinavgs(i)
 
             do k = 1, S%N
@@ -497,8 +468,6 @@ module measurements_mod
             call  jackknife(S%sgnbinavgs     , S%nbin, S%sgnavg     , S%sgnerr)
             call  jackknife(S%updenbinavgs   , S%nbin, S%updenavg   , S%updenerr)
             call  jackknife(S%dndenbinavgs   , S%nbin, S%dndenavg   , S%dndenerr)
-            call zjackknife(S%uppolbinavgs   , S%nbin, S%uppolavg   , S%uppolerr)
-            call zjackknife(S%dnpolbinavgs   , S%nbin, S%dnpolavg   , S%dnpolerr)
             call  jackknife(S%totaldenbinavgs, S%nbin, S%totaldenavg, S%totaldenerr)
 
             do i = 1, S%N
