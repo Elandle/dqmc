@@ -17,11 +17,11 @@ import ckb
 #
 
 # only even m for now
-n = 8
+n = 24
 m = n//2
 
 t = 1
-v = 1
+v = 2.00
 delta = 0.1
 tp = t + delta
 tm = t - delta
@@ -42,5 +42,5 @@ for i in range(m):
 K = K.T
 
 check = ckb.ckb(K)
-check.saveckb("d01v1ckb.txt")
+check.saveckb("d01v200ckb.txt")
 check.savebipartite()

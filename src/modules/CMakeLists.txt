@@ -11,7 +11,6 @@ add_library(dqmc
       ${CMAKE_CURRENT_SOURCE_DIR}/measurements_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/metropolisratios_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/stduse.f90
-      ${CMAKE_CURRENT_SOURCE_DIR}/polarization_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/printing_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/readinputfile_mod.f90
       ${CMAKE_CURRENT_SOURCE_DIR}/simulate_mod.f90
@@ -38,7 +37,26 @@ target_link_libraries(dqmc
         BLAS::BLAS
 )
 
-target_compile_options(dqmc PRIVATE -Wall -Wextra -Wsurprising -fimplicit-none -Ofast -ffree-line-length-none -march=native)
+# -march=native
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(dqmc PRIVATE
+        -Wall -Wextra -Wsurprising       
+        -fimplicit-none                  
+        -ffree-line-length-none          
+        -Ofast
+        -static                                             
+    )
+# -xHost
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+    target_compile_options(dqmc PRIVATE
+        -warn all                                          
+        -extend_source                   
+        -Ofast
+        -static-intel
+        -static                                                     
+    )
+endif()
+
 
 install(TARGETS dqmc
   LIBRARY DESTINATION lib
