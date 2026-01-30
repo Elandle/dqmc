@@ -111,17 +111,19 @@ module measurements_mod
 
             integer :: j
 
-            S%updenbin   (i) = 0.0_dp
-            S%dndenbin   (i) = 0.0_dp
-            S%totaldenbin(i) = 0.0_dp
-            do j = 1, S%N
-                S%updenbin   (i) = S%updenbin   (i) + ni(S, j,  1)
-                S%dndenbin   (i) = S%dndenbin   (i) + ni(S, j, -1)
-                S%totaldenbin(i) = S%totaldenbin(i) + ni(S, j,  1) + ni(S, j, -1)
-            enddo
-            S%updenbin   (i) = S%sgn * S%updenbin   (i) / S%N
-            S%dndenbin   (i) = S%sgn * S%dndenbin   (i) / S%N
-            S%totaldenbin(i) = S%sgn * S%totaldenbin(i) / S%N
+            associate(N => S%N, updenbin => S%updenbin, dndenbin => S%dndenbin, totaldenbin =>S%totaldenbin, sgn => S%sgn)
+                updenbin   (i) = 0.0_dp
+                dndenbin   (i) = 0.0_dp
+                totaldenbin(i) = 0.0_dp
+                do j = 1, N
+                    updenbin   (i) = updenbin   (i) + ni(S, j,  1)
+                    dndenbin   (i) = dndenbin   (i) + ni(S, j, -1)
+                    totaldenbin(i) = totaldenbin(i) + ni(S, j,  1) + ni(S, j, -1)
+                enddo
+                updenbin   (i) = sgn * updenbin   (i) / N
+                dndenbin   (i) = sgn * dndenbin   (i) / N
+                totaldenbin(i) = sgn * totaldenbin(i) / N
+            endassociate
         endsubroutine measure_den
 
         subroutine measure_kinetic(S, i)
@@ -139,15 +141,17 @@ module measurements_mod
             ! ENSURE CORRECTNESS
             ! kinetic = sum(S%T * transpose(S%Gup)) + sum(S%T * transpose(S%Gdn))
 
-            kinetic = 0.0_dp
-            do j = 1, S%N
-                do k = 1, S%N
-                    kinetic = kinetic - S%T(j, k) * cdicj(S, j, k,  1) &
-                                      - S%T(j, k) * cdicj(S, j, k, -1)
+            associate(N => S%N, T => S%T, kineticbin => S%kineticbin, sgn => S%sgn)
+                kinetic = 0.0_dp
+                do j = 1, N
+                    do k = 1, N
+                        kinetic = kinetic - T(j, k) * cdicj(S, j, k,  1) &
+                                          - T(j, k) * cdicj(S, j, k, -1)
+                    enddo
                 enddo
-            enddo
 
-            S%kineticbin(i) = S%sgn * kinetic
+                kineticbin(i) = sgn * kinetic
+            endassociate
         endsubroutine measure_kinetic
 
         subroutine measure_chemical(S, i)
@@ -157,13 +161,15 @@ module measurements_mod
             real(dp) :: chemical
             integer  :: j
 
-            chemical = 0.0_dp
-            do j = 1, S%N
-                chemical = chemical - S%mu * ni(S, j,  1)    &
-                                    - S%mu * ni(S, j, -1)
-            enddo
+            associate(N => S%N, mu => S%mu, chemicalbin => S%chemicalbin, sgn => S%sgn)
+                chemical = 0.0_dp
+                do j = 1, N
+                    chemical = chemical - mu * ni(S, j,  1)    &
+                                        - mu * ni(S, j, -1)
+                enddo
 
-            S%chemicalbin(i) = S%sgn * chemical
+                chemicalbin(i) = sgn * chemical
+            endassociate
         endsubroutine measure_chemical
 
         subroutine measure_potential(S, i)
@@ -173,30 +179,34 @@ module measurements_mod
             real(dp) :: potential
             integer  :: j
 
-            potential = 0.0_dp
-            do j = 1, S%N
-                ! Particle-hole symmetric form
-                ! potential = potential + S%U * (                                             &
-                !                                            ni(S, j, 1) * ni(S, j, -1)       &
-                !                               - 0.5_dp  * (ni(S, j, 1) + ni(S, j, -1))      &
-                !                               + 0.25_dp                                     &
-                !                               )
+            associate(N => S%N, U => S%U, potentialbin => S%potentialbin, sgn => S%sgn)
+                potential = 0.0_dp
+                do j = 1, N
+                    ! Particle-hole symmetric form
+                    ! potential = potential + U * (                                             &
+                    !                                          ni(S, j, 1) * ni(S, j, -1)       &
+                    !                             - 0.5_dp  * (ni(S, j, 1) + ni(S, j, -1))      &
+                    !                             + 0.25_dp                                     &
+                    !                             )
 
-                ! Non-particle-hole symmetric form
-                potential = potential + S%U * ni(S, j, 1) * ni(S, j, -1)          
-            enddo
-            ! potential = potential * S%U
-            S%potentialbin(i) = S%sgn * potential
+                    ! Non-particle-hole symmetric form
+                    potential = potential + U * ni(S, j, 1) * ni(S, j, -1)          
+                enddo
+                ! potential = potential * S%U
+                potentialbin(i) = sgn * potential
+            endassociate
         endsubroutine measure_potential
 
         subroutine measure_energy(S, i)
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
 
-            ! S%energybin(i) = S%sgn * S%kineticbin(i) + S%sgn * S%potentialbin(i)
-            S%energybin(i) = S%kineticbin  (i)      &
-                           + S%potentialbin(i)      &
-                           + S%chemicalbin (i)
+            associate(energybin => S%energybin, kineticbin => S%kineticbin, potentialbin => S%potentialbin, chemicalbin => S%chemicalbin, sgn => S%sgn)
+                ! energybin(i) = sgn * kineticbin(i) + sgn * potentialbin(i)
+                energybin(i) = kineticbin  (i)      &
+                             + potentialbin(i)      &
+                             + chemicalbin (i)
+            endassociate
         endsubroutine measure_energy
 
         subroutine measure_den_full(S, i)
@@ -205,10 +215,12 @@ module measurements_mod
 
             integer :: j
 
-            do j = 1, S%N
-                S%updenfullbin(j, i) = S%sgn * ni(S, j,  1)
-                S%dndenfullbin(j, i) = S%sgn * ni(S, j, -1)
-            enddo
+            associate(N => S%N, updenfullbin => S%updenfullbin, dndenfullbin => S%dndenfullbin, sgn => S%sgn)
+                do j = 1, N
+                    updenfullbin(j, i) = sgn * ni(S, j,  1)
+                    dndenfullbin(j, i) = sgn * ni(S, j, -1)
+                enddo
+            endassociate
         endsubroutine measure_den_full
 
         subroutine measure_doubleocc_full(S, i)

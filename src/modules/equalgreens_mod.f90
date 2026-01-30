@@ -351,139 +351,145 @@ module equalgreens_mod
             ! The permutation matrix P is stored as a vector jpvt.
             ! ---------------------------------------------------------------------------
 
-            ! First iteration ---------------------------------------
-            ! (needs some initial setup)
+            associate(Q => S%qrdQ, LL => S%L, north => S%north, P => S%qrdP, &
+                      N => S%N, tau => S%qrdtau, work => S%qrdwork, lwork => S%qrdlwork, &
+                      D => S%qrdD, T => S%qrdT, IP => S%qrdI, R => S%qrdR, F => S%qrdF, &
+                      B => S%qrdB, invP => S%invP, invwork => S%invwork, invlwork => S%invlwork, &
+                      Gup => S%Gup, Gdn => S%Gdn)
+                ! First iteration ---------------------------------------
+                ! (needs some initial setup)
 
-            ! Iteration j = 1
-            j = 1
+                ! Iteration j = 1
+                j = 1
 
-            ! Construct first B matrix
-            ! (stored in Q)
-            call make_B(S, S%qrdQ, getj(j, S%L, l), sigma)
+                ! Construct first B matrix
+                ! (stored in Q)
+                call make_B(S, Q, getj(j, LL, l), sigma)
 
-            ! Multiply a total of north B matrices together
-            ! (stored in Q)
-            if (j .lt. S%north) then
-                do j = j+1, S%north
-                    call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
-                enddo
-            endif
-            j = S%north
-
-            ! QRP factorise the product of B matrices
-            ! (QRP factorise Q)
-            S%qrdP = 0
-            call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
-
-            ! D = diag(Q) (diag(R) of QRP)
-            call diag(S%qrdQ, S%qrdD, S%N)
-
-            ! T = uppertri(Q) (R of QRP)
-            call uppertri(S%qrdQ, S%qrdT, S%N)
-
-            ! T = inv(D) * T  (inv(D) * R)
-            call left_diaginvmult(S%qrdT, S%qrdD, S%N)
-
-            ! T = T * inv(P)  ((inv(D) * R) * inv(P))
-            S%qrdI = S%qrdP
-            call invert_permutation(S%qrdI, S%N)
-            call permute_matrix_columns(S%qrdT, S%N, S%qrdP, S%qrdI)
-
-            ! Q = explicit Q (Q of QRP; from iteration j)
-            call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
-
-            ! End first iteration ----------------------------------------------------------
-
-            ! Loop strategy:
-            ! 
-            ! Each time a B matrix is multiplied in, increment j and i.
-            ! j counts how many B matrices have been multiplied in.
-            ! i counts how many B matrices have been multiplied without doing a QRP factorisation.
-            ! When i is north or j is L, QRP factorize and do the main ASvQRD step (j = L is special,
-            ! to ensure a QRP factorisation is done before exiting the main loop).
-            ! i is reset to 0 when this QRP factorisation is done.
-            ! The outermost do loop tracks when j reaches L, when this happens we know both:
-            !       a QRP factorisation was done in the last inner loop iteration
-            !       L B matrices have been multiplied together.
-            ! At this point the outermost do loop is exited.
-            do
-                if (j .eq. S%L) then
-                    ! All B matrices multiplied and last result QRP factorised --> good to leave
-                    exit
-                else
-                    ! A QRP factorisation will have been done before getting here.
-                    ! Reset the north counter i to 0.
-                    i = 0
-                    do
-                        ! Have north B matrices been multiplied together,
-                        ! or we reached L B matrix multiplications and have to
-                        ! clean up to leave?
-                        if (i .eq. S%north .or. j .eq. S%L) then
-                            ! Q = Q * D (D from previous QRP factorisation)
-                            call right_diagmult(S%qrdQ, S%qrdD, S%N)
-
-                            ! QRP factorise Q
-                            S%qrdP = 0
-                            call dgeqp3(S%N, S%N, S%qrdQ, S%N, S%qrdP, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
-
-                            ! D = diag(Q)
-                            call diag(S%qrdQ, S%qrdD, S%N)
-
-                            ! R = uppertri(Q)
-                            call uppertri(S%qrdQ, S%qrdR, S%N)
-
-                            ! R = inv(D) * R
-                            call left_diaginvmult(S%qrdR, S%qrdD, S%N)
-
-                            ! T = inv(P) * T
-                            S%qrdI = S%qrdP
-                            call invert_permutation(S%qrdI, S%N)
-                            call permute_matrix_rows(S%qrdT, S%N, S%qrdI, S%qrdP)
-
-                            ! T = R * T
-                            call dtrmm('l', 'u', 'n', 'n', S%N, S%N, 1.0_dp, S%qrdR, S%N, S%qrdT, S%N)
-
-                            ! Q = full Q (QRP factorisation done in this segment, for next time)
-                            call dorgqr(S%N, S%N, S%N, S%qrdQ, S%N, S%qrdtau, S%qrdwork, S%qrdlwork, S%info)
-
-                            ! Go back to outermost do loop
-                            exit
-                        else
-                            ! Good to multiply in a B matrix without QRP factorizing.
-                            j = j + 1
-                            i = i + 1
-                            call left_Bmult(S, S%qrdQ, getj(j, S%L, l), sigma)
-                        endif
+                ! Multiply a total of north B matrices together
+                ! (stored in Q)
+                if (j .lt. north) then
+                    do j = j+1, north
+                        call left_Bmult(S, Q, getj(j, LL, l), sigma)
                     enddo
                 endif
-            enddo
+                j = north
 
-            ! Inversion step
+                ! QRP factorise the product of B matrices
+                ! (QRP factorise Q)
+                P = 0
+                call dgeqp3(N, N, Q, N, P, tau, work, lwork, info)
 
-            ! D = Db * Ds decomposition
-            ! D = Db, F = Ds
-            call DbDs(S%qrdD, S%qrdF, S%N)
+                ! D = diag(Q) (diag(R) of QRP)
+                call diag(Q, D, N)
 
-            ! Computing G = inv(Ds*T + inv(Db)*trans(Q))*inv(Db)*trans(Q)
+                ! T = uppertri(Q) (R of QRP)
+                call uppertri(Q, T, N)
 
-            ! B = trans(Q)
-            call trans(S%qrdB, S%qrdQ, S%N)
-            ! B = inv(Db) * B
-            call left_diaginvmult(S%qrdB, S%qrdD, S%N)
+                ! T = inv(D) * T  (inv(D) * R)
+                call left_diaginvmult(T, D, N)
 
-            ! T = Ds * T                  
-            call left_diagmult(S%qrdT, S%qrdF, S%N)       
-            ! T = T + B                                                
-            call add_matrix(S%qrdT, S%qrdB, S%N)
-            ! T = inv(T)
-            call invert(S%qrdT, S%N, S%invP, S%invwork, S%invlwork, S%info)  
+                ! T = T * inv(P)  ((inv(D) * R) * inv(P))
+                IP = P
+                call invert_permutation(IP, N)
+                call permute_matrix_columns(T, N, P, IP)
 
-            ! G = T * B
-            if (sigma .eq. 1) then ! sigma =  1 --> Gup
-                call dgemm('n', 'n', S%N, S%N, S%N, 1.0_dp, S%qrdT, S%N, S%qrdB, S%N, 0.0_dp, S%Gup, S%N)
-            else                   ! sigma = -1 --> Gdn
-                call dgemm('n', 'n', S%N, S%N, S%N, 1.0_dp, S%qrdT, S%N, S%qrdB, S%N, 0.0_dp, S%Gdn, S%N)
-            endif
+                ! Q = explicit Q (Q of QRP; from iteration j)
+                call dorgqr(N, N, N, Q, N, tau, work, lwork, info)
+
+                ! End first iteration ----------------------------------------------------------
+
+                ! Loop strategy:
+                ! 
+                ! Each time a B matrix is multiplied in, increment j and i.
+                ! j counts how many B matrices have been multiplied in.
+                ! i counts how many B matrices have been multiplied without doing a QRP factorisation.
+                ! When i is north or j is L, QRP factorize and do the main ASvQRD step (j = L is special,
+                ! to ensure a QRP factorisation is done before exiting the main loop).
+                ! i is reset to 0 when this QRP factorisation is done.
+                ! The outermost do loop tracks when j reaches L, when this happens we know both:
+                !       a QRP factorisation was done in the last inner loop iteration
+                !       L B matrices have been multiplied together.
+                ! At this point the outermost do loop is exited.
+                do
+                    if (j .eq. LL) then
+                        ! All B matrices multiplied and last result QRP factorised --> good to leave
+                        exit
+                    else
+                        ! A QRP factorisation will have been done before getting here.
+                        ! Reset the north counter i to 0.
+                        i = 0
+                        do
+                            ! Have north B matrices been multiplied together,
+                            ! or we reached L B matrix multiplications and have to
+                            ! clean up to leave?
+                            if (i .eq. north .or. j .eq. LL) then
+                                ! Q = Q * D (D from previous QRP factorisation)
+                                call right_diagmult(Q, D, N)
+
+                                ! QRP factorise Q
+                                P = 0
+                                call dgeqp3(N, N, Q, N, P, tau, work, lwork, info)
+
+                                ! D = diag(Q)
+                                call diag(Q, D, N)
+
+                                ! R = uppertri(Q)
+                                call uppertri(Q, R, N)
+
+                                ! R = inv(D) * R
+                                call left_diaginvmult(R, D, N)
+
+                                ! T = inv(P) * T
+                                IP = P
+                                call invert_permutation(IP, N)
+                                call permute_matrix_rows(T, N, IP, P)
+
+                                ! T = R * T
+                                call dtrmm('l', 'u', 'n', 'n', N, N, 1.0_dp, R, N, T, N)
+
+                                ! Q = full Q (QRP factorisation done in this segment, for next time)
+                                call dorgqr(N, N, N, Q, N, tau, work, lwork, info)
+
+                                ! Go back to outermost do loop
+                                exit
+                            else
+                                ! Good to multiply in a B matrix without QRP factorizing.
+                                j = j + 1
+                                i = i + 1
+                                call left_Bmult(S, Q, getj(j, LL, l), sigma)
+                            endif
+                        enddo
+                    endif
+                enddo
+
+                ! Inversion step
+
+                ! D = Db * Ds decomposition
+                ! D = Db, F = Ds
+                call DbDs(D, F, N)
+
+                ! Computing G = inv(Ds*T + inv(Db)*trans(Q))*inv(Db)*trans(Q)
+
+                ! B = trans(Q)
+                call trans(B, Q, N)
+                ! B = inv(Db) * B
+                call left_diaginvmult(B, D, N)
+
+                ! T = Ds * T                  
+                call left_diagmult(T, F, N)       
+                ! T = T + B                                                
+                call add_matrix(T, B, N)
+                ! T = inv(T)
+                call invert(T, N, invP, invwork, invlwork, info)  
+
+                ! G = T * B
+                if (sigma .eq. 1) then ! sigma =  1 --> Gup
+                    call dgemm('n', 'n', N, N, N, 1.0_dp, T, N, B, N, 0.0_dp, Gup, N)
+                else                   ! sigma = -1 --> Gdn
+                    call dgemm('n', 'n', N, N, N, 1.0_dp, T, N, B, N, 0.0_dp, Gdn, N)
+                endif
+            endassociate
         endsubroutine newG
 
         !>\brief Returns the index of the \f$i\f$th \f$B_\sigma\f$ matrix from the right in the
