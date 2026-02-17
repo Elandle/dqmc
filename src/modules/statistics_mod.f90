@@ -30,7 +30,7 @@ module statistics_mod
         !! \param[in] x   (`real(sp), dimension(n)`) Vector to take average of entries.
         !! \param[in] n   (`integer`)                Dimension of x
         !! \result    avg (`real(sp)`)               Average value of entries of x
-        pure real(dp) function svector_avg(x, n)
+        pure real(sp) function svector_avg(x, n)
             real(sp), intent(in) :: x(n)
             integer , intent(in) :: n
 
@@ -60,7 +60,7 @@ module statistics_mod
         !! \param[in] x   (`complex(sp), dimension(n)`) Vector to take average of entries.
         !! \param[in] n   (`integer`)                   Dimension of x
         !! \result    avg (`complex(sp)`)               Average value of entries of x
-        pure complex(dp) function cvector_avg(x, n)
+        pure complex(sp) function cvector_avg(x, n)
             complex(sp), intent(in) :: x(n)
             integer    , intent(in) :: n
 

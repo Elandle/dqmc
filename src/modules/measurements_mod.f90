@@ -34,39 +34,6 @@ module measurements_mod
     use utilities
     implicit none
 
-    type scamesr(nbin, binsize)
-        integer, len :: nbin
-        integer, len :: binsize
-
-        real(dp) :: bin(binsize)
-        real(dp) :: binavgs(nbin)
-        real(dp) :: avg
-        real(dp) :: err
-    endtype scamesr
-
-    type vecmesr(n, nbin, binsize)
-        integer, len :: n
-        integer, len :: nbin
-        integer, len :: binsize
-
-        real(dp) :: bin(n, binsize)
-        real(dp) :: binavgs(n, nbin)
-        real(dp) :: avg(n)
-        real(dp) :: err(n)
-    endtype vecmesr
-
-    type matmesr(m, n, nbin, binsize)
-        integer, len :: m
-        integer, len :: n
-        integer, len :: nbin
-        integer, len :: binsize
-
-        real(dp) :: bin(m, n, binsize)
-        real(dp) :: binavgs(m, n, nbin)
-        real(dp) :: avg(m, n)
-        real(dp) :: err(m, n)
-    endtype matmesr
-
     contains
 
         !> \brief Called by the main simulation subroutine (subroutine simulate,
@@ -389,7 +356,7 @@ module measurements_mod
             endif
         endfunction cicdj
 
-        real(dp) function cdicj(S, i, j, spin)
+        pure elemental real(dp) function cdicj(S, i, j, spin)
             !
             ! Returns \langle c_{i\sigma}^\dagger c_{j\sigma} \rangle
             !

@@ -43,17 +43,20 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         -Wall -Wextra -Wsurprising       
         -fimplicit-none                  
         -ffree-line-length-none          
-        -Ofast
-        -static                                             
+        #-Ofast
+        #-static
+        -g                                         
     )
-# -xHost
+
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     target_compile_options(dqmc PRIVATE
         -warn all                                          
         -extend_source                   
-        -Ofast
-        -static-intel
-        -static                                                     
+        #-Ofast
+        #-static-intel
+        #-static
+        #-xHost
+        -g                                               
     )
 endif()
 
