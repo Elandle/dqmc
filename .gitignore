@@ -199,3 +199,7 @@ cython_debug/
 
 # Doxygen documentation
 doxygen/
+
+inputoutput/
+
+launch.json

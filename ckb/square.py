@@ -12,12 +12,12 @@ import ckb
 #
 
 
-m = 4
-n = 4
+m = 8
+n = 8
 N = m*n
 
 tx = 1
-deltax = 0.1
+deltax = 0.3
 txp = tx + deltax
 txm = tx - deltax
 
@@ -51,12 +51,12 @@ for j in range(n):
     K[N-n+j, j] = tym
 
 # Periodic x
-# for i in range(m):
-#     K[i*n, i*n+n-1] = txm
-#     K[i*n+n-1, i*n] = txp
+for i in range(m):
+    K[i*n, i*n+n-1] = txm
+    K[i*n+n-1, i*n] = txp
 
 K = K.T
 check = ckb.ckb(K)
-check.saveckb("d010_x8_y8_obcx_pbcy_ckb.txt")
+check.saveckb("d030_x8_y8_pbcx_pbcy_ckb.txt")
 check.savebipartite()
 print(K)
