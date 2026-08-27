@@ -366,6 +366,19 @@ module checkerboard_mod
             enddo
         endsubroutine right_ckbmult
 
+        subroutine right_ckbinvmult(ckb, A, n, work)
+            type(checkerboard), intent(in)    :: ckb
+            real(dp)          , intent(inout) :: A(n, n)
+            integer           , intent(in)    :: n
+            real(dp)          , intent(out)   :: work(n)
+
+            integer :: i
+
+            do i = ckb%n, 1, -1
+                call right_colourmult(ckb%colours(i), A, n, work)
+            enddo
+        endsubroutine right_ckbinvmult
+
         subroutine left_ckbmult(ckb, A, n, work)
             !
             ! Updates:
@@ -396,6 +409,19 @@ module checkerboard_mod
                 call left_colourmult(ckb%colours(i), A, n, work)
             enddo
         endsubroutine left_ckbmult
+
+        subroutine left_ckbinvmult(ckb, A, n, work)
+            type(checkerboard), intent(in)    :: ckb
+            real(dp)          , intent(inout) :: A(n, n)
+            integer           , intent(in)    :: n
+            real(dp)          , intent(out)   :: work(n)
+
+            integer :: i
+
+            do i = 1, ckb%n
+                call left_colourmult(ckb%colours(i), A, n, work)
+            enddo
+        endsubroutine left_ckbinvmult
 
         subroutine read_ckb(ckb, filename, iounit, dtau)
             !

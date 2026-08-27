@@ -118,7 +118,7 @@ module bmult_mod
             ! call right_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
             ! call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
 
-            call right_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
+            call right_ckbinvmult(S%ckbinv, A, S%N, S%ckbwork)
             call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
             A = exp(-S%dtau * S%mu) * A
         endsubroutine right_Binvmult
@@ -152,7 +152,7 @@ module bmult_mod
             ! call left_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
 
             call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
-            call left_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
+            call left_ckbinvmult(S%ckbinv, A, S%N, S%ckbwork)
             A = A / exp(S%dtau * S%mu)
         endsubroutine left_Binvmult
 

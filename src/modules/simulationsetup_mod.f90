@@ -26,7 +26,7 @@ module simulationsetup_mod
         integer :: N          !< Number of sites
         integer :: L          !< Number of imaginary time slices
         
-        integer :: nstab      !< Every `nstab` flips, the Green's functions \f$G_\sigma\f$ will be computed from scratch.
+        integer :: nstab      !< Number of imaginary time propagations before computing Green's functions from scratch.
         integer :: north      !< How many `B_\sigma`'s can be multiplied together accurately before doing a QRP when constructing \f$G_\sigma\f$ from scratch.
         integer :: nbin       !< How many bins to put measurements into (must divide `nmeassweep`).
         integer :: nmeassweep !< How many sweeps will have measurements performed on them.
