@@ -428,7 +428,7 @@ module customla_mod
             x(j) = temp
         endsubroutine swap
 
-        subroutine invert(A, n, P, work, lwork, info)
+        subroutine invert(A, n, P, work, lwork, info, detsgn)
             !
             ! Sets:
             !
@@ -441,15 +441,32 @@ module customla_mod
             ! First, A is A = P * L * U factorised by dgetrf
             ! Then, A is inverted by dgetri (using the result of dgetrf)
             !
-            real(dp), intent(inout) :: A(n, n)
-            integer , intent(in)    :: n
-            integer , intent(out)   :: P(n)
-            real(dp), intent(out)   :: work(lwork)
-            integer , intent(in)    :: lwork
-            integer , intent(out)   :: info
+            real(dp), intent(inout)         :: A(n, n)
+            integer , intent(in)            :: n
+            integer , intent(out)           :: P(n)
+            real(dp), intent(out)           :: work(lwork)
+            integer , intent(in)            :: lwork
+            integer , intent(out)           :: info
+            integer , intent(out), optional :: detsgn
+
+            integer :: i
 
             ! A = P * L * U
             call dgetrf(n, n, A, n, P, info)
+
+            ! Calculation of the sign of the determinant
+            if (present(detsgn)) then
+                detsgn = 1
+                do i = 1, n
+                    if (A(i, i) .lt. 0.0_dp) then
+                        detsgn = -detsgn
+                    endif
+                    if (P(i) .ne. i) then
+                        detsgn = -detsgn
+                    endif
+                enddo
+            endif
+
             ! A = inv(A)
             call dgetri(n, A, n, P, work, lwork, info)
         endsubroutine invert

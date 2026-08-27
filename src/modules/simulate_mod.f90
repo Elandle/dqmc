@@ -45,6 +45,7 @@ module simulate_mod
 
             integer  :: i
             real(dp) :: rand
+            integer :: rupsgn, rdnsgn
 
             ! Sweep through all sites i = 1, ..., N at a fixed imaginary time step l
             do i = 1, S%N
@@ -54,12 +55,9 @@ module simulate_mod
                 call greens_R(S, i, l, 1)
                 call greens_R(S, i, l, -1)
 
-                ! The probability of accepting the flip is R = |Rup * Rdn|
-                ! The sign is needed for measurements
-                S%upsgn = sgn(S%Rup)
-                S%dnsgn = sgn(S%Rdn)
-                S%sgn   = S%upsgn * S%dnsgn
-                S%R     = S%sgn * S%Rup * S%Rdn
+                rupsgn = sgn(S%Rup)
+                rdnsgn = sgn(S%Rdn)
+                S%R    = abs(S%Rup * S%Rdn)
 
                 ! Generate a random number uniformly between 0 and 1
                 call random_number(rand)
@@ -74,6 +72,10 @@ module simulate_mod
                     ! Update the Green's functions
                     call flipupdate(S, i, 1)
                     call flipupdate(S, i, -1)
+
+                    S%upsgn = S%upsgn * rupsgn
+                    S%dnsgn = S%dnsgn * rdnsgn
+                    S%sgn   = S%upsgn * S%dnsgn
 
                 else
                     ! Reject the flip

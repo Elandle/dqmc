@@ -398,6 +398,10 @@ module simulationsetup_mod
             call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, 1.0_dp)
             call expm(S%T, S%expT, S%dtau)
             call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
+
+            S%upsgn = 1
+            S%dnsgn = 1
+            S%sgn   = 1
         endsubroutine setup_simulation
 
 

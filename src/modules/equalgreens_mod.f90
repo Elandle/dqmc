@@ -329,6 +329,8 @@ module equalgreens_mod
             integer :: i ! north counter
             integer :: info
 
+            integer :: invsgn, Qsgn, Dsgn, detsgn
+
             ! Reminder about LAPACK's dgeqp3 --------------------------------------------
             ! (QR factorisation with column pivoting: QRP factorisation)
             ! 
@@ -463,11 +465,27 @@ module equalgreens_mod
                     endif
                 enddo
 
+                ! Sign of det(Q)
+                Qsgn = 1
+                do i = 1, N
+                    if (tau(i) .ne. 0.0_dp) then
+                        Qsgn = -Qsgn
+                    endif
+                enddo
+
                 ! Inversion step
 
                 ! D = Db * Ds decomposition
                 ! D = Db, F = Ds
                 call DbDs(D, F, N)
+
+                ! Sign of det(Db)
+                Dsgn = 1
+                do i = 1, N
+                    if (D(i) .lt. 0.0_dp) then
+                        Dsgn = -Dsgn
+                    endif
+                enddo
 
                 ! Computing G = inv(Ds*T + inv(Db)*trans(Q))*inv(Db)*trans(Q)
 
@@ -481,14 +499,19 @@ module equalgreens_mod
                 ! T = T + B                                                
                 call add_matrix(T, B, N)
                 ! T = inv(T)
-                call invert(T, N, invP, invwork, invlwork, info)  
+                call invert(T, N, invP, invwork, invlwork, info, invsgn)
+
+                detsgn = invsgn * Dsgn * Qsgn
 
                 ! G = T * B
                 if (sigma .eq. 1) then ! sigma =  1 --> Gup
                     call dgemm('n', 'n', N, N, N, 1.0_dp, T, N, B, N, 0.0_dp, Gup, N)
+                    S%upsgn = detsgn
                 else                   ! sigma = -1 --> Gdn
                     call dgemm('n', 'n', N, N, N, 1.0_dp, T, N, B, N, 0.0_dp, Gdn, N)
+                    S%dnsgn = detsgn
                 endif
+                S%sgn = S%upsgn * S%dnsgn
             endassociate
         endsubroutine newG
 
