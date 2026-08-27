@@ -12,6 +12,7 @@ import ckb
 #
 
 ckbname = "ckb8x8d00.txt"
+bipname = "bip8x8.txt"
 
 m = 8
 n = 8
@@ -59,5 +60,5 @@ for i in range(m):
 K = K.T
 check = ckb.ckb(K)
 check.saveckb(ckbname)
-check.savebipartite()
+check.savebipartite(bipname)
 print(K)

@@ -51,6 +51,8 @@ module readinputfile_mod
         character(len=:), allocatable :: ckbfilename !< File name to read checkerboard from.
         character(len=:), allocatable :: outfilename !< File name to print results to.
         character(len=:), allocatable :: debfilename !< File name to print debugging information (if in debug mode) into.
+        character(len=:), allocatable :: bipfilename
+        character(len=:), allocatable :: summary
     endtype parameter_values
 
     !> \brief Tracks whether or not a value has set for each parameter.
@@ -74,7 +76,9 @@ module readinputfile_mod
         logical :: ckbfilename = .false.   !< `.true.` if `ckbfilename` is set. `.false.` if not.
         logical :: outfilename = .false.   !< `.true.` if `outfilename` is set. `.false.` if not.
         logical :: debfilename = .false.   !< `.true.` if `debfilename` is set. `.false.` if not.
-    endtype parameter_set
+        logical :: bipfilename = .false.
+        logical :: summary     = .false.
+        endtype parameter_set
 
     contains
 
@@ -110,8 +114,8 @@ module readinputfile_mod
             if (present(maxlen)) then
                 actual_maxlen = maxlen
             else
-                ! default maximum length of 100
-                actual_maxlen = 100
+                ! default maximum length of 1024
+                actual_maxlen = 1024
             endif
 
             ! allocate if not already allocated
@@ -285,6 +289,12 @@ module readinputfile_mod
                 case("debfilename")
                     param_values%debfilename = right
                     param_set   %debfilename = .true.
+                case("bipfilename")
+                    param_values%bipfilename = right
+                    param_set   %bipfilename = .true.
+                case("summary")
+                    param_values%summary     = right
+                    param_set   %summary     = .true.
             endselect
         endsubroutine asnparam
 
@@ -303,9 +313,11 @@ module readinputfile_mod
             write(unit=ounit, fmt="(a20, f20.10)") "dtau = "       , param_values%dtau
             write(unit=ounit, fmt="(a20, f20.10)") "U = "          , param_values%U
             write(unit=ounit, fmt="(a20, f20.10)") "mu = "         , param_values%mu
-            write(unit=ounit, fmt="(a20, a20)")    "ckbfilename = ", param_values%ckbfilename
-            write(unit=ounit, fmt="(a20, a20)")    "outfilename = ", param_values%outfilename
-            write(unit=ounit, fmt="(a20, a20)")    "debfilename = ", param_values%debfilename
+            write(unit=ounit, fmt="(a20, a)")    "ckbfilename = ", param_values%ckbfilename
+            write(unit=ounit, fmt="(a20, a)")    "outfilename = ", param_values%outfilename
+            write(unit=ounit, fmt="(a20, a)")    "debfilename = ", param_values%debfilename
+            write(unit=ounit, fmt="(a20, a)")    "bipfilename = ", param_values%bipfilename
+            write(unit=ounit, fmt="(a20, a)")    "summary     = ", param_values%bipfilename
         endsubroutine printparams
 
         subroutine asndefaults(param_values, param_set, ounit)
@@ -324,6 +336,7 @@ module readinputfile_mod
             real(dp)          :: U_default
             real(dp)          :: mu_default
             character(len=10) :: outfilename_default
+            character(len=10) :: summary_default
 
             L_default           = 60
             nstab_default       = 5
@@ -336,6 +349,7 @@ module readinputfile_mod
             U_default           = 0.0_dp
             mu_default          = 0.0_dp
             outfilename_default = "output.txt"
+            summary_default     = ""
 
             if (.not. param_set%N) then
                 write(unit=ounit, fmt="(a)") "Warning: N not set. Simulation cannot run unless assigned."
@@ -392,6 +406,15 @@ module readinputfile_mod
             endif
             if (.not. param_set%ckbfilename) then
                 write(unit=ounit, fmt="(a)") "Warning: ckbfilename not set. Simulation cannot run unless assigned."
+            endif
+            ! Currently need bipartite file (todo: remove requirement)
+            if (.not. param_set%bipfilename) then
+                write(unit=ounit, fmt="(a)") "Warning: bipfilename not set. Simulation cannot run unless assigned."
+            endif
+            if (.not.param_set%summary) then
+                write(unit=ounit, fmt="(a)") "Warning: summary not set. Setting to default value."
+                param_values%summary = summary_default
+                param_set%summary = .true.
             endif
         endsubroutine asndefaults
 

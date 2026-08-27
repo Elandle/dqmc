@@ -48,6 +48,7 @@ module simulationsetup_mod
 
         type(WrapStab) :: stab 
         
+        integer :: nstab
         integer :: north      !< How many `B_\sigma`'s can be multiplied together accurately before doing a QRP when constructing \f$G_\sigma\f$ from scratch.
         integer :: nbin       !< How many bins to put measurements into (must divide `nmeassweep`).
         integer :: nmeassweep !< How many sweeps will have measurements performed on them.
@@ -73,14 +74,16 @@ module simulationsetup_mod
         real(dp) :: R         !< Metropolis weight \f$R = R_\uparrow R_\downarrow\f$.
         real(dp) :: rand      !< Uniform random number between \f$0\f$ and \f$1\f$.
 
-        character(len=100)    :: ckbfilename !< File name of checkerboard file to read in.
+        character(len=:), allocatable    :: ckbfilename !< File name of checkerboard file to read in.
         integer               :: ckbiounit   !< Input/output unit for the `ckbfilename` file.
 
-        character(len=100)    :: outfilename !< File name of output file.
+        character(len=:), allocatable    :: outfilename !< File name of output file.
         integer               :: ounit       !< Input/output unit for the `outfilename` file.
 
-        character(len=100)    :: debfilename !< File name of debug information file.
+        character(len=:), allocatable    :: debfilename !< File name of debug information file.
         integer               :: dunit       !< Input/output unit for the `debfilename` file.
+
+        character(len=:), allocatable :: bipfilename
 
         real(dp), allocatable :: T(:, :)     !< Hopping matrix \f$T\f$ (\f$N x N\f$). \f$T(i, j) = \f$ hopping value from site \f$j\f$ to site \f$i\f$.
         integer , allocatable :: h(:, :)     !< Hubbard Stratonovich field \f$h\f$ (\f$N x L\f$). Takes only the values \f$1\f$ and \f$-1\f$. \f$h(i, l)\f$ is the value of the \f$h\f$ at site \f$i\f$ at timeslice \f$l\f$. Flipping the spin at \f$i, l\f$ means to set \f$h(i, l) = -h(i, l)\f$.
@@ -207,6 +210,8 @@ module simulationsetup_mod
 
         integer , allocatable :: bipartsgn(:, :)              ! (N x N)
 
+        character(len=:), allocatable :: summary
+
         ! Used only when using bmult_mod instead of bmultexact_mod.
         ! That is, when B matrices are multiplied by using the approximate matrix exponential
         ! by the checkerboard method instead of the exact matrix exponential
@@ -228,7 +233,7 @@ module simulationsetup_mod
 
         subroutine setup_simulation(S          , N          , L          , nstab, north, nbin,  &
                                     nmeassweep , nskip      , nequil     , dtau , U    , mu  ,  &
-                                    ckbfilename, outfilename, debfilename)
+                                    ckbfilename, outfilename, debfilename, bipfilename, summary)
             !
             ! Main way of setting up a simulation datatype S for use in simulation.
             ! After calling setup_simulation, simulate(S) (from simulate_mod) should immediately
@@ -249,15 +254,17 @@ module simulationsetup_mod
             character(len=*)  , intent(in)    :: ckbfilename
             character(len=*)  , intent(in)    :: outfilename
             character(len=*)  , intent(in)    :: debfilename
+            character(len=*)  , intent(in)    :: bipfilename
+            character(len=*)  , intent(in)    :: summary
 
             integer :: i, j, m, bipartfile, label
             integer :: biplabels(N)
-            character(len=100) :: str
+            character(len=1024) :: str
 
             S%N          = N
             S%L          = L
 
-
+            S%nstab = nstab
             S%stab%nmax     = min(max(1, nstab), S%L)
             S%stab%n        = min(2, S%stab%nmax)
             S%stab%lastn    = S%stab%n
@@ -297,6 +304,7 @@ module simulationsetup_mod
             S%ckbfilename = ckbfilename
             S%outfilename = outfilename
             S%debfilename = debfilename
+            S%summary     = summary
 
             S%qrdlwork = 5 * (3 * N + 1)
             allocate(S%ckbwork(N))
@@ -391,10 +399,10 @@ module simulationsetup_mod
 
 
             allocate(S%bipartsgn(N, N))
-
-            open(file="bip.txt", newunit=bipartfile)
+            S%bipfilename = bipfilename
+            open(file=trim(bipfilename), newunit=bipartfile)
             do i = 1, N
-                read(bipartfile, "(a100)") str
+                read(bipartfile, "(a)") str
                 read(str, *) j, label
                 biplabels(j) = label
             enddo
@@ -410,12 +418,12 @@ module simulationsetup_mod
                 enddo
             enddo
 
-            do i = 1, N
-                do j = 1, N
-                    write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
-                enddo
-                write(stdout, "(a)") ""
-            enddo
+            !do i = 1, N
+            !    do j = 1, N
+            !        write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
+            !    enddo
+            !    write(stdout, "(a)") ""
+            !enddo
 
 
             call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
@@ -466,6 +474,8 @@ module simulationsetup_mod
                                 param_values%mu,          &
                                 param_values%ckbfilename, &
                                 param_values%outfilename, &
-                                param_values%debfilename)
+                                param_values%debfilename, &
+                                param_values%bipfilename, &
+                                param_values%summary)
         endsubroutine setup_simulation_input
 endmodule simulationsetup_mod

@@ -1,0 +1,16 @@
+N = 64
+L = 60
+nstab = 10
+north = 6
+nbin = 32
+nmeassweep = 320
+nskip = 2
+nequil = 100
+dtau = 0.08
+U = 4.0
+mu = 0.0
+ckbfilename = ckb8x8.txt
+bipfilename = bip8x8.txt
+outfilename = out8x8.txt
+debfilename = deb8x8.txt
+summary     = 8x8 simulation
