@@ -192,7 +192,7 @@ module equalgreens_mod
             endif
         endsubroutine wrap
 
-        subroutine timeupdate(S, l, sigma)
+        subroutine timeupdate(S, l, sigma, diff, check)
             !
             ! Updates G for a new time slice iteration in a sweep
             ! Where G is the up spin (sigma = 1) or dn spin (sigma) equal time Green's function
@@ -208,72 +208,123 @@ module equalgreens_mod
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: l
             integer         , intent(in)    :: sigma
+            real(dp)        , intent(out)   :: diff
+            logical         , intent(out)   :: check
 
-            ! real(dp) :: diff
-            ! real(dp) :: wrapG(S%N, S%N)
+            diff = 0.0_dp
+            check = .false.
 
-            ! Two choices for updating Green's function
-            ! 1. From scratch (slow)
-            ! call newG(S, l, sigma)
-            ! return
+            associate(Gwork => S%stab%matwork)
+                if (sigma .eq. 1) then          ! up spin (sigma = 1)
+                    if (l .eq. 1) then
+                        call newG(S, l, sigma)
+                        S%stab%upi = 0
+                    elseif (mod(S%stab%upi + 1, S%stab%n) .eq. 0) then
+                        S%stab%checkn = S%stab%checkn + 1
 
-            ! 2. Wrapping (fast)
-            if (sigma .eq. 1) then          ! up spin (sigma = 1)
-                if ((mod(S%upstabi+1, S%nstab) .eq. 0) .or. (l .eq. 1)) then
-                    ! Todo: finish implementing wrap and scratch test
-                    ! 
-                    ! First wrap
-                    ! call wrap(S, l, sigma)
-                    ! wrapG = S%Gup
+                        if (S%stab%n .lt. S%stab%nmax) then
+                            S%stab%docheck = .true.
+                        else
+                            S%stab%docheck = (mod(S%stab%checkn, S%stab%checkevery) .eq. 0)
+                        endif
 
-                    ! Now make G from scratch and see how well the wrapping did
-                    ! call compareG(S, l, diff, sigma, keep=.true.)
+                        if (S%stab%tuning .and. S%stab%docheck) then
+                            call wrap(S, l, sigma)
+                            call copy_matrix(S%Gup, Gwork, S%N)
+                            call newG(S, l, sigma)
+                            diff = matdiff(S%Gup, Gwork, S%N, S%N, S%qrdmatwork)
+                            check = .true.
+                        else
+                            call newG(S, l, sigma)
+                        endif
 
-                    ! Present for debugging ---------------------------------------
-                    ! write(stdout, "(a, f17.8)") "Gup newG and wrap diff = ", diff
-                    ! call print_matrix(S%Gup - wrapG, stdout, "Gup - wrap G = ")
-                    ! call print_matrix(S%Gup, stdout, "Gup = ")
-                    ! call print_matrix(wrapG, stdout, "wrap Gup = ")
-                    ! -------------------------------------------------------------
-                    
-                    ! Only make a G from scratch
-                    ! (no checking how wrapping did)
-                    call newG(S, l, sigma)
-
-                    S%upstabi = 0
+                        S%stab%upi = 0
+                    else
+                        call wrap(S, l, sigma)
+                        S%stab%upi = S%stab%upi + 1
+                    endif
                 else
-                    call wrap(S, l, sigma)
-                    S%upstabi = S%upstabi + 1
+                    if (l .eq. 1) then
+                        call newG(S, l, sigma)
+                        S%stab%dni = 0
+                    elseif (mod(S%stab%dni + 1, S%stab%n) .eq. 0) then
+                        if (S%stab%tuning .and. S%stab%docheck) then
+                            call wrap(S, l, sigma)
+                            call copy_matrix(S%Gdn, Gwork, S%N)
+                            call newG(S, l, sigma)
+                            diff = matdiff(S%Gdn, Gwork, S%N, S%N, S%qrdmatwork)
+                            check = .true.
+                        else
+                            call newG(S, l, sigma)
+                        endif
+
+                        S%stab%dni = 0
+                    else
+                        call wrap(S, l, sigma)
+                        S%stab%dni = S%stab%dni + 1
+                    endif
                 endif
-            else                            ! dn spin (sigma = -1)
-                if ((mod(S%dnstabi+1, S%nstab) .eq. 0) .or. (l .eq. 1)) then
-                    ! Todo: finish implementing wrap and scratch test
-                    ! 
-                    ! First wrap
-                    ! call wrap(S, l, sigma)
-                    ! wrapG = S%Gdn
-
-                    ! Now make G from scratch and see how well the wrapping did
-                    ! call compareG(S, l, diff, sigma, keep=.true.)
-
-                    ! Present for debugging ---------------------------------------
-                    ! write(stdout, "(a, f17.8)") "Gdn newG and wrap diff = ", diff
-                    ! call print_matrix(S%Gdn - wrapG, stdout, "Gdn - wrap G = ")
-                    ! call print_matrix(S%Gdn, stdout, "Gdn = ")
-                    ! call print_matrix(wrapG, stdout, "wrap Gdn = ")
-                    ! -------------------------------------------------------------
-                    
-                    ! Only make a G from scratch
-                    ! (no checking how wrapping did)
-                    call newG(S, l, sigma)
-
-                    S%dnstabi = 0
-                else
-                    call wrap(S, l, sigma)
-                    S%dnstabi = S%dnstabi + 1
-                endif
-            endif
+            endassociate
         endsubroutine timeupdate
+
+        subroutine stabupdate(stab, diff)
+            type(WrapStab), intent(inout) :: stab
+            real(dp)      , intent(in)    :: diff 
+
+            ! still tuning stab?
+            if (.not. stab%tuning) then
+                return
+            endif
+
+            stab%lastdiff = diff
+            stab%maxdiff = max(stab%maxdiff, diff)
+
+            stab%printn = stab%printn + 1
+
+            if (mod(stab%printn, stab%printevery) .eq. 0) then
+                write(stdout, "(a, i4, a, es12.4)") "nstab = ", stab%n, ", dG = ", diff
+            endif
+
+            if (diff .ge. stab%tol) then
+                write(stdout, "(a, i4, a, i4)") "nstab ", stab%n, " inaccurate, reducing to ", stab%lastn
+
+                stab%n = stab%lastn
+                stab%goodn = 0
+                stab%upi = 0
+                stab%dni = 0
+                stab%checkn = 0
+                stab%tuning = .false.
+
+                write(stdout, "(a, i4)") "nstab tuning concluded. final value: ", stab%n
+
+                return
+            endif
+
+            if (diff .lt. stab%goodtol) then
+
+                if (stab%n .lt. stab%nmax) then
+                    stab%goodn = stab%goodn + 1
+
+                    if (stab%goodn .gt. 2) then
+                        stab%lastn = stab%n
+                        stab%n = stab%n + 1
+                        stab%goodn = 0
+                        stab%upi = 0
+                        stab%dni = 0
+                        stab%checkn = 0
+
+                        write(stdout, "(a, i4)") "increasing nstab to ", stab%n
+                    endif
+
+                else
+                    stab%goodn = 0
+                endif
+
+            else
+                stab%goodn = 0
+            endif
+        endsubroutine stabupdate
+
 
         !> Computes a new equal time Green's function \f$G_\sigma(l)\f$ at time step \f$l\f$.
         !!

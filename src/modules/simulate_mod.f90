@@ -20,14 +20,22 @@ module simulate_mod
         subroutine sweep(S)
             type(Simulation), intent(inout) :: S
 
-            integer :: l
+            integer  :: l
+            real(dp) :: updiff, dndiff
+            logical  :: upcheck, dncheck
 
             ! Sweep through imaginary time
             do l = 1, S%L
 
                 ! Update Green's functions for this time slice
-                call timeupdate(S, l, 1)
-                call timeupdate(S, l, -1)
+                call timeupdate(S, l, 1, updiff, upcheck)
+                call timeupdate(S, l, -1, dndiff, dncheck)
+
+                if (S%stab%tuning) then
+                    if (upcheck .and. dncheck) then
+                        call stabupdate(S%stab, max(updiff, dndiff))
+                    endif
+                endif
 
                 ! Sweep through sites of the lattice at slice l
                 call sweepslice(S, l)
@@ -88,7 +96,9 @@ module simulate_mod
         subroutine warmup(S)
             type(Simulation), intent(inout) :: S
 
-            integer :: i, l
+            integer  :: i, l
+            real(dp) :: updiff, dndiff
+            logical  :: upcheck, dncheck
 
             ! Very first sweep is slightly different since Green's functions
             ! have not been computed yet
@@ -96,7 +106,6 @@ module simulate_mod
             ! l = 1 imaginary time sweep:
             l = 1
             write(stdout, "(a, i5, a)") "Warmup sweep ", 1, "..."
-            ! write(S%dunit    , "(a, i5, a)") "Warmup sweep ", 1, "..."
             call newG(S, l, 1)
             call newG(S, l, -1)
             call sweepslice(S, l)
@@ -105,8 +114,14 @@ module simulate_mod
                 ! Sweep through imaginary time
 
                 ! Update Green's functions for this time slice
-                call timeupdate(S, l, 1)
-                call timeupdate(S, l, -1)
+                call timeupdate(S, l, 1, updiff, upcheck)
+                call timeupdate(S, l, -1, dndiff, dncheck)
+
+                if (S%stab%tuning) then
+                    if (upcheck .and. dncheck) then
+                        call stabupdate(S%stab, max(updiff, dndiff))
+                    endif
+                endif
 
                 ! Sweep through sites of the lattice at slice l
                 call sweepslice(S, l)
@@ -114,9 +129,13 @@ module simulate_mod
 
             do i = 2, S%nequil
                 write(stdout, "(a, i5, a)") "Warmup sweep ", i, "..."
-                write(S%dunit    , "(a, i5, a)") "Warmup sweep ", i, "..."
                 call sweep(S)
             enddo
+
+            
+            write(stdout, "(a, i4)") "Final nstab = ", S%stab%n
+            write(stdout, "(a, es14.4)") "Maximum dG seen = ", S%stab%maxdiff
+            S%stab%tuning = .false.
         endsubroutine warmup
 
         subroutine simulate(S)

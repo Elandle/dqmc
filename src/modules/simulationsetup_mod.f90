@@ -20,13 +20,34 @@ module simulationsetup_mod
     use convenientla_mod
     implicit none
 
+    type :: WrapStab
+        integer :: n
+        integer :: upi
+        integer :: dni
+        integer :: goodn
+        integer :: lastn
+        integer :: nmax
+        real(dp) :: tol
+        real(dp) :: lastdiff
+        real(dp) :: maxdiff
+        real(dp) :: goodtol
+        logical :: tuning
+        real(dp), allocatable :: matwork(:, :)
+        integer :: checkn
+        integer :: checkevery
+        logical :: docheck
+        integer :: printn
+        integer :: printevery
+    endtype WrapStab
+
     !> \brief Main datatype for running simulations.
     !! Contains nearly everything used in running a simulation.
     type :: Simulation
         integer :: N          !< Number of sites
         integer :: L          !< Number of imaginary time slices
+
+        type(WrapStab) :: stab 
         
-        integer :: nstab      !< Number of imaginary time propagations before computing Green's functions from scratch.
         integer :: north      !< How many `B_\sigma`'s can be multiplied together accurately before doing a QRP when constructing \f$G_\sigma\f$ from scratch.
         integer :: nbin       !< How many bins to put measurements into (must divide `nmeassweep`).
         integer :: nmeassweep !< How many sweeps will have measurements performed on them.
@@ -51,9 +72,6 @@ module simulationsetup_mod
 
         real(dp) :: R         !< Metropolis weight \f$R = R_\uparrow R_\downarrow\f$.
         real(dp) :: rand      !< Uniform random number between \f$0\f$ and \f$1\f$.
-
-        integer :: upstabi    !< Counter for determining when to compute \f$G_\uparrow\f$ from scratch.
-        integer :: dnstabi    !< Counter for determining when to compute \f$G_\downarrow\f$ from scratch.
 
         character(len=100)    :: ckbfilename !< File name of checkerboard file to read in.
         integer               :: ckbiounit   !< Input/output unit for the `ckbfilename` file.
@@ -239,7 +257,26 @@ module simulationsetup_mod
             S%N          = N
             S%L          = L
 
-            S%nstab      = nstab
+
+            S%stab%nmax     = min(max(1, nstab), S%L)
+            S%stab%n        = min(2, S%stab%nmax)
+            S%stab%lastn    = S%stab%n
+            S%stab%upi      = 0
+            S%stab%dni      = 0
+            S%stab%goodn    = 0
+            S%stab%tol      = 1.0e-6_dp
+            S%stab%goodtol  = 1.0e-10_dp
+            S%stab%lastdiff = 0.0_dp
+            S%stab%maxdiff  = 0.0_dp
+            S%stab%tuning = (S%stab%n .lt. S%stab%nmax)
+            S%stab%checkn = 0
+            S%stab%docheck = .false.
+            S%stab%checkevery = 10
+            S%stab%printn = 0
+            S%stab%printevery = 20
+            allocate(S%stab%matwork(S%N, S%N))
+
+
             S%north      = north
             S%nbin       = nbin
             S%nmeassweep = nmeassweep
@@ -388,8 +425,7 @@ module simulationsetup_mod
             ! TODO: implement seed
             call random_init(.true., .true.)
 
-            S%upstabi = 0
-            S%dnstabi = 0
+
 
             allocate(S%T(N, N))
             allocate(S%expT(N, N))
