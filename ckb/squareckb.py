@@ -10,6 +10,8 @@ import ckb
 nx = 8
 ny = 8
 
+ckbname = "squareckb.txt"
+
 n = nx * ny
 
 tx = 1
@@ -28,5 +30,5 @@ K = numpy.kron(Idy, Kx) + numpy.kron(Ky, Idx)
 
 
 check = ckb.ckb(K)
-check.saveckb("squareckb.txt")
+check.saveckb(ckbname)
 check.savebipartite()

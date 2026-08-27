@@ -2,47 +2,49 @@ import ifile
 
 input = ifile.InputFile()
 
-input.N           = 64
-input.L           = 40
-input.nstab       = 2
-input.north       = 2
-input.nbin        = 32
-input.nmeassweep  = 64000
-input.nskip       = 2
-input.nequil      = 2000
-input.dtau        = 0.08
-input.U           = 4
-input.mu          = 0
-input.ckbfilename = "ckb.txt"
-input.outfilename = "out.txt"
-input.debfilename = "deb.txt"
+input.nstab = 10
+input.nbin = 32
+input.nmeassweep = 64000
+input.nskip = 2
+input.dtau = 0.08
+input.mu = 0.0
 
-Ls = [6, 12, 24, 48, 96, 120]
-ds = ["000", "002", "005", "010", "020", "030"]
-mus = ["p000", "p020", "p040", "p060", "p080", "p100", "p120", "p140", "p160", "p180", "p200",
-       "n020", "n040", "n060", "n080", "n100", "n120", "n140", "n160", "n180", "n200"]
-xbcs = ["pbcx"]
-Us = [4]
+sizes = [8, 10, 12]
+Us = [1, 2, 3, 4]
+Ls = [24, 48, 72, 102, 126, 150]
+ds = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30]
+nequils = {8: 4000, 10: 6000, 12: 8000}
 
-for xbc in xbcs:
-    for d in ds:
+count = 0
+
+for size in sizes:
+    for U in Us:
         for L in Ls:
-            for mu in mus:
-                for U in Us:
-                    input.L = L
-                    L = str(L)
-                    muinput = mu
-                    if muinput[0] == "p":
-                        muinput = float(muinput[1:]) * pow(10, -2)
-                    elif muinput[0] == "n":
-                        muinput = -float(muinput[1:]) * pow(10, -2)
-                    input.mu = muinput
-                    input.U = U
-                    U = str(U)
-                    name =  "U" + U + "_" + "L" + L + "_" + "d" + d + "_" + "mu" + mu + "_x8_y8_" + xbc + "_pbcy"
-                    ckbname = "d" + d + "_x8_y8_" + xbc + "_pbxy"
-                    input.ckbfilename = ckbname + "_ckb.txt"
-                    input.outfilename = name + "_out.txt"
-                    input.debfilename = name + "_deb.txt"
-                    input.print(name + "_input.txt")
-                    print(name + "_input.txt")
+            for d in ds:
+
+                input.N = size * size
+                input.L = L
+                input.U = U
+                input.north = 6
+                input.nequil = nequils[size]
+
+                beta = L * input.dtau
+
+                dstr = str(int(round(d * 100))).zfill(3)
+                sizestr = str(size)
+                Ustr = str(U)
+                Lstr = str(L)
+                betastr = str(round(beta, 2))
+
+                input.ckbfilename = "d" + dstr + "_x" + sizestr + "_y" + sizestr + "_pbcx_pbcy_ckb.txt"
+                input.outfilename = "U" + Ustr + "_L" + Lstr + "_b" + betastr + "_d" + dstr + "_x" + sizestr + "_y" + sizestr + "_pbcx_pbcy_out.txt"
+                input.debfilename = "U" + Ustr + "_L" + Lstr + "_b" + betastr + "_d" + dstr + "_x" + sizestr + "_y" + sizestr + "_pbcx_pbcy_deb.txt"
+
+                inputfilename = "U" + Ustr + "_L" + Lstr + "_b" + betastr + "_d" + dstr + "_x" + sizestr + "_y" + sizestr + "_pbcx_pbcy_input.txt"
+
+                input.print(inputfilename)
+                print(inputfilename)
+
+                count = count + 1
+
+print(count, "total input files")

@@ -11,13 +11,14 @@ import ckb
 #
 #
 
+ckbname = "ckb8x8d00.txt"
 
 m = 8
 n = 8
 N = m*n
 
 tx = 1
-deltax = 0.3
+deltax = 0.0
 txp = tx + deltax
 txm = tx - deltax
 
@@ -57,6 +58,6 @@ for i in range(m):
 
 K = K.T
 check = ckb.ckb(K)
-check.saveckb("d030_x8_y8_pbcx_pbcy_ckb.txt")
+check.saveckb(ckbname)
 check.savebipartite()
 print(K)
