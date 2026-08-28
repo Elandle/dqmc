@@ -45,6 +45,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     )
 
     if(optimization STREQUAL "nativehigh")
+
         target_compile_options(
             dqmc
             PRIVATE
@@ -85,5 +86,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         )
 
     else()
+
+    endif()
 
 endif()
