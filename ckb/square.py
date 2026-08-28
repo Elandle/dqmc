@@ -11,11 +11,11 @@ import ckb
 #
 #
 
-ckbname = "ckb8x8d00.txt"
-bipname = "bip8x8.txt"
+ckbname = "ckb12x12d00.txt"
+bipname = "bip12x12.txt"
 
-m = 8
-n = 8
+m = 12
+n = 12
 N = m*n
 
 tx = 1
