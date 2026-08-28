@@ -431,6 +431,7 @@ module readinputfile_mod
 
             open(newunit=funit, file=fname)
 
+            iostat = 0
             ! read line-by-line until the end
             do while (iostat .ne. iostat_end)
                 call readln(funit, iostat, line) ! read in line

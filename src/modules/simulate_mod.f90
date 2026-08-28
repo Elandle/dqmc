@@ -313,6 +313,7 @@ module simulate_mod
             call print_vector(S%magmomentavg, S%ounit)
             write(S%ounit, "(a)") "+-"
             call print_vector(S%magmomenterr, S%ounit)
+            close(S%ounit)
         endsubroutine output
 
 endmodule simulate_mod
