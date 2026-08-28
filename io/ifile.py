@@ -14,6 +14,8 @@ class InputFile():
         self.ckbfilename = None
         self.outfilename = None
         self.debfilename = None
+        self.bipfilename = None
+        self.summary     = None
     def print(self, ofile=None, force=False):
         allset = self.checkset()
         if (not allset):
@@ -42,6 +44,8 @@ class InputFile():
         print(f"ckbfilename = {self.ckbfilename}", file=file)
         print(f"outfilename = {self.outfilename}", file=file)
         print(f"debfilename = {self.debfilename}", file=file)
+        print(f"bipfilename = {self.bipfilename}", file=file)
+        print(f"summary     = {self.summary}"    , file=file)
         if ofile is not None:
             file.close()
     def readyparameters(self):
@@ -59,6 +63,8 @@ class InputFile():
         self.ckbfilename = str(self.ckbfilename) if (self.ckbfilename is not None) else None
         self.outfilename = str(self.outfilename) if (self.outfilename is not None) else None
         self.debfilename = str(self.debfilename) if (self.debfilename is not None) else None
+        self.bipfilename = str(self.bipfilename) if (self.bipfilename is not None) else None
+        self.summary     = str(self.summary)     if (self.summary     is not None) else None
     def checkset(self):
         allset = True
         if (self.N is None):
@@ -102,5 +108,11 @@ class InputFile():
             allset = False
         if (self.debfilename is None):
             print(f"debfilename is not set")
+            allset = False
+        if (self.bipfilename is None):
+            print(f"bipfilename is not set")
+            allset = False
+        if (self.summary is None):
+            print(f"summary is not set")
             allset = False
         return allset

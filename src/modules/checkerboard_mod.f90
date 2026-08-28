@@ -508,6 +508,7 @@ module checkerboard_mod
                     call construct_sympair(ckb%colours(k)%pairs(l), i, j, scale * ij, scale * ji)
                 enddo
             enddo
+            close(iounit)
         endsubroutine read_ckb
 
         subroutine read_ckbT(T, N, filename, iounit, dtau)
@@ -564,6 +565,7 @@ module checkerboard_mod
             !    enddo
             !    write(6, "(a)") ""
             !enddo
+            close(iounit)
         endsubroutine read_ckbT
         
 endmodule checkerboard_mod

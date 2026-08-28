@@ -61,4 +61,3 @@ K = K.T
 check = ckb.ckb(K)
 check.saveckb(ckbname)
 check.savebipartite(bipname)
-print(K)

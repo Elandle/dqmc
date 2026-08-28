@@ -203,3 +203,7 @@ doxygen/
 inputoutput/
 
 launch.json
+
+simulations/
+tinybuild/
+io/
