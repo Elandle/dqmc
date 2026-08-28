@@ -54,6 +54,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         )
 
     elseif(optimization STREQUAL "puma")
+
         target_compile_options(
             dqmc
             PRIVATE
@@ -63,6 +64,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         )
 
     elseif(optimization STREQUAL "portable")
+
         target_compile_options(
             dqmc
             PRIVATE
@@ -72,6 +74,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         )
 
     elseif(optimization STREQUAL "debug")
+
         target_compile_options(
             dqmc
             PRIVATE
@@ -82,6 +85,5 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         )
 
     else()
-    endif()
 
 endif()

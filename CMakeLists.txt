@@ -11,4 +11,22 @@ endif()
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 
+if(NOT TARGET BLAS::BLAS)
+    add_library(BLAS::BLAS INTERFACE IMPORTED)
+    set_target_properties(
+        BLAS::BLAS
+        PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${BLAS_LIBRARIES};pthread"
+    )
+endif()
+
+if(NOT TARGET LAPACK::LAPACK)
+    add_library(LAPACK::LAPACK INTERFACE IMPORTED)
+    set_target_properties(
+        LAPACK::LAPACK
+        PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${LAPACK_LIBRARIES}"
+    )
+endif()
+
 add_subdirectory(src)
