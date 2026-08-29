@@ -4,6 +4,11 @@ project(dqmc LANGUAGES Fortran)
 
 set(BUILD_SHARED_LIBS OFF)
 
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    add_compile_options($<$<NOT:$<CONFIG:Debug>>:-flto>)
+    add_link_options($<$<NOT:$<CONFIG:Debug>>:-flto>)
+endif()
+
 if(UNIX AND NOT APPLE)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 endif()
