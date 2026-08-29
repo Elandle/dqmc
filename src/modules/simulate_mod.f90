@@ -261,13 +261,12 @@ module simulate_mod
                     endif
                 enddo
             enddo
-            write(S%ounit, "(a)")             "Bipartite matrix i j S(i, j) S(j, i) ="
+            write(S%ounit, "(a)")             "Bipartite matrix S ="
             do i = 1, S%N
-                do j = i + 1, S%N
-                    if (abs(S%T(i,j)) > 1.0e-12_dp .or. abs(S%T(j,i)) > 1.0e-12_dp) then
-                        write(S%ounit, "(2i7, 2i10)") i, j, S%bipartsgn(i,j), S%bipartsgn(j,i)
-                    endif
+                do j = 1, S%N
+                    write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
                 enddo
+                write(stdout, "(a)") ""
             enddo
 
             write(S%ounit, "(a)") ""

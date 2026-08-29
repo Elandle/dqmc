@@ -418,14 +418,6 @@ module simulationsetup_mod
                 enddo
             enddo
 
-            !do i = 1, N
-            !    do j = 1, N
-            !        write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
-            !    enddo
-            !    write(stdout, "(a)") ""
-            !enddo
-
-
             call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
             call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
 
