@@ -127,6 +127,32 @@ module statistics_mod
             err = sqrt(sum((x - avg) ** 2) / (n*(n-1)))
         endsubroutine djackknife
 
+
+        pure subroutine djackknife_sgn(x, n, avg, err, sgn)
+            real(dp), intent(in)  :: x(n)
+            integer , intent(in)  :: n
+            real(dp), intent(out) :: avg, err
+            real(dp), intent(in)  :: sgn(n)
+
+            real(dp) :: xsum, sgnsum
+            real(dp) :: jackavg(n), jackmean
+
+            integer :: i
+
+            xsum   = sum(x)
+            sgnsum = sum(sgn)
+
+            avg = xsum / sgnsum
+
+            do i = 1, n
+                jackavg(i) = (xsum - x(i)) / (sgnsum - sgn(i))
+            enddo
+
+            jackmean = vector_avg(jackavg, n)
+
+            err = sqrt((n - 1.0_dp) / n * sum((jackavg - jackmean) ** 2))
+        endsubroutine djackknife_sgn
+
         !> Performs the Jackknife method for the average and standard deviation
         !!  of the entries of the length \f$n\f$ `complex(dp)` vector \f$n\f$.
         !!

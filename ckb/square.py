@@ -11,20 +11,20 @@ import ckb
 #
 #
 
-ckbname = "ckb8x8.txt"
-bipname = "bip8x8.txt"
+ckbname = "ckb8x8d09.txt"
+bipname = "bip8x8d09.txt"
 
 m = 8
 n = 8
 N = m*n
 
 tx = 1
-deltax = 0.05
+deltax = 0.09
 txp = tx + deltax
 txm = tx - deltax
 
 ty = 1
-deltay = 0.0
+deltay = 0.09
 typ = ty + deltay
 tym = ty - deltay
 

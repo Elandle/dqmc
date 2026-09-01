@@ -388,9 +388,7 @@ module measurements_mod
         subroutine avgbin(S, i)
             !
             ! Averages the ith bin measurement, storing the averages so the bin workspace
-            ! can be used again, and accounts for the sign problem on averages by
-            ! dividing these averages by the average of the sign of the determinant
-            ! obtained when the bin was measured.
+            ! can be used again.
             !
             type(Simulation), intent(inout) :: S
             integer         , intent(in)    :: i
@@ -398,41 +396,41 @@ module measurements_mod
             integer :: j, k
 
             S%sgnbinavgs     (i) = real(sum(S%sgnbin), dp)  / S%binsize
-            S%updenbinavgs   (i) =  vector_avg(S%updenbin   , S%binsize) / S%sgnbinavgs(i)
-            S%dndenbinavgs   (i) =  vector_avg(S%dndenbin   , S%binsize) / S%sgnbinavgs(i)
-            S%totaldenbinavgs(i) =  vector_avg(S%totaldenbin, S%binsize) / S%sgnbinavgs(i)
+            S%updenbinavgs   (i) =  vector_avg(S%updenbin   , S%binsize)
+            S%dndenbinavgs   (i) =  vector_avg(S%dndenbin   , S%binsize)
+            S%totaldenbinavgs(i) =  vector_avg(S%totaldenbin, S%binsize)
 
             do k = 1, S%N
                 do j = 1, S%N
-                    S%spindenscorrbinavgs(j, k, i) = vector_avg(S%spindenscorrbin(j, k, :), S%binsize) / S%sgnbinavgs(i)
+                    S%spindenscorrbinavgs(j, k, i) = vector_avg(S%spindenscorrbin(j, k, :), S%binsize)
                 enddo
             enddo
 
             do k = 1, S%N
                 do j = 1, S%N
-                    S%spinspincorrbinavgs(j, k, i) = vector_avg(S%spinspincorrbin(j, k, :), S%binsize) / S%sgnbinavgs(i)
+                    S%spinspincorrbinavgs(j, k, i) = vector_avg(S%spinspincorrbin(j, k, :), S%binsize)
                 enddo
             enddo
 
             do k = 1, S%N
                 do j = 1, S%N
-                    S%Gupbinavgs(j, k, i) = vector_avg(S%Gupbin(j, k, :), S%binsize) / S%sgnbinavgs(i)
-                    S%Gdnbinavgs(j, k, i) = vector_avg(S%Gdnbin(j, k, :), S%binsize) / S%sgnbinavgs(i)
+                    S%Gupbinavgs(j, k, i) = vector_avg(S%Gupbin(j, k, :), S%binsize)
+                    S%Gdnbinavgs(j, k, i) = vector_avg(S%Gdnbin(j, k, :), S%binsize)
                 enddo
             enddo
 
             do k = 1, S%N
-                S%doubleoccfullbinavgs(k, i) = vector_avg(S%doubleoccfullbin(k, :), S%binsize) / S%sgnbinavgs(i)
-                S%updenfullbinavgs    (k, i) = vector_avg(S%updenfullbin    (k, :), S%binsize) / S%sgnbinavgs(i)
-                S%dndenfullbinavgs    (k, i) = vector_avg(S%dndenfullbin    (k, :), S%binsize) / S%sgnbinavgs(i)
-                S%magmomentbinavgs    (k, i) = vector_avg(S%magmomentbin    (k, :), S%binsize) / S%sgnbinavgs(i)
+                S%doubleoccfullbinavgs(k, i) = vector_avg(S%doubleoccfullbin(k, :), S%binsize)
+                S%updenfullbinavgs    (k, i) = vector_avg(S%updenfullbin    (k, :), S%binsize)
+                S%dndenfullbinavgs    (k, i) = vector_avg(S%dndenfullbin    (k, :), S%binsize)
+                S%magmomentbinavgs    (k, i) = vector_avg(S%magmomentbin    (k, :), S%binsize)
             enddo
 
-            S%kineticbinavgs     (i) = vector_avg(S%kineticbin  , S%binsize) / S%sgnbinavgs(i)
-            S%potentialbinavgs   (i) = vector_avg(S%potentialbin, S%binsize) / S%sgnbinavgs(i)
-            S%energybinavgs      (i) = vector_avg(S%energybin   , S%binsize) / S%sgnbinavgs(i)
-            S%antiferrobinavgs   (i) = vector_avg(S%antiferrobin, S%binsize) / S%sgnbinavgs(i)
-            S%chemicalbinavgs    (i) = vector_avg(S%chemicalbin , S%binsize) / S%sgnbinavgs(i)
+            S%kineticbinavgs     (i) = vector_avg(S%kineticbin  , S%binsize)
+            S%potentialbinavgs   (i) = vector_avg(S%potentialbin, S%binsize)
+            S%energybinavgs      (i) = vector_avg(S%energybin   , S%binsize)
+            S%antiferrobinavgs   (i) = vector_avg(S%antiferrobin, S%binsize)
+            S%chemicalbinavgs    (i) = vector_avg(S%chemicalbin , S%binsize)
         endsubroutine avgbin
 
         subroutine dostatistics(S)
@@ -445,41 +443,41 @@ module measurements_mod
             integer :: i, j
 
             call  jackknife(S%sgnbinavgs     , S%nbin, S%sgnavg     , S%sgnerr)
-            call  jackknife(S%updenbinavgs   , S%nbin, S%updenavg   , S%updenerr)
-            call  jackknife(S%dndenbinavgs   , S%nbin, S%dndenavg   , S%dndenerr)
-            call  jackknife(S%totaldenbinavgs, S%nbin, S%totaldenavg, S%totaldenerr)
+            call  djackknife_sgn(S%updenbinavgs   , S%nbin, S%updenavg   , S%updenerr, S%sgnbinavgs)
+            call  djackknife_sgn(S%dndenbinavgs   , S%nbin, S%dndenavg   , S%dndenerr, S%sgnbinavgs)
+            call  djackknife_sgn(S%totaldenbinavgs, S%nbin, S%totaldenavg, S%totaldenerr, S%sgnbinavgs)
 
             do i = 1, S%N
                 do j = 1, S%N
-                    call jackknife(S%spindenscorrbinavgs(i, j, :), S%nbin, S%spindenscorravg(i, j), S%spindenscorrerr(i, j))
+                    call djackknife_sgn(S%spindenscorrbinavgs(i, j, :), S%nbin, S%spindenscorravg(i, j), S%spindenscorrerr(i, j), S%sgnbinavgs)
                 enddo
             enddo
 
             do i = 1, S%N
                 do j = 1, S%N
-                    call jackknife(S%spinspincorrbinavgs(i, j, :), S%nbin, S%spinspincorravg(i, j), S%spinspincorrerr(i, j))
+                    call djackknife_sgn(S%spinspincorrbinavgs(i, j, :), S%nbin, S%spinspincorravg(i, j), S%spinspincorrerr(i, j), S%sgnbinavgs)
                 enddo
             enddo
 
             do i = 1, S%N
                 do j = 1, S%N
-                    call jackknife(S%Gupbinavgs(i, j, :), S%nbin, S%Gupavg(i, j), S%Guperr(i, j))
-                    call jackknife(S%Gdnbinavgs(i, j, :), S%nbin, S%Gdnavg(i, j), S%Gdnerr(i, j))
+                    call djackknife_sgn(S%Gupbinavgs(i, j, :), S%nbin, S%Gupavg(i, j), S%Guperr(i, j), S%sgnbinavgs)
+                    call djackknife_sgn(S%Gdnbinavgs(i, j, :), S%nbin, S%Gdnavg(i, j), S%Gdnerr(i, j), S%sgnbinavgs)
                 enddo
             enddo
 
             do i = 1, S%N
-                call jackknife(S%doubleoccfullbinavgs(i, :), S%nbin, S%doubleoccfullavg(i), S%doubleoccfullerr(i))
-                call jackknife(S%updenfullbinavgs    (i, :), S%nbin, S%updenfullavg    (i), S%updenfullerr    (i))
-                call jackknife(S%dndenfullbinavgs    (i, :), S%nbin, S%dndenfullavg    (i), S%dndenfullerr    (i))
-                call jackknife(S%magmomentbinavgs    (i, :), S%nbin, S%magmomentavg    (i), S%magmomenterr    (i))
+                call djackknife_sgn(S%doubleoccfullbinavgs(i, :), S%nbin, S%doubleoccfullavg(i), S%doubleoccfullerr(i), S%sgnbinavgs)
+                call djackknife_sgn(S%updenfullbinavgs    (i, :), S%nbin, S%updenfullavg    (i), S%updenfullerr    (i), S%sgnbinavgs)
+                call djackknife_sgn(S%dndenfullbinavgs    (i, :), S%nbin, S%dndenfullavg    (i), S%dndenfullerr    (i), S%sgnbinavgs)
+                call djackknife_sgn(S%magmomentbinavgs    (i, :), S%nbin, S%magmomentavg    (i), S%magmomenterr    (i), S%sgnbinavgs)
             enddo
 
-            call jackknife(S%kineticbinavgs  , S%nbin, S%kineticavg  , S%kineticerr)
-            call jackknife(S%potentialbinavgs, S%nbin, S%potentialavg, S%potentialerr)
-            call jackknife(S%energybinavgs   , S%nbin, S%energyavg   , S%energyerr)
-            call jackknife(S%antiferrobinavgs, S%nbin, S%antiferroavg, S%antiferroerr)
-            call jackknife(S%chemicalbinavgs , S%nbin, S%chemicalavg , S%chemicalerr)
+            call djackknife_sgn(S%kineticbinavgs  , S%nbin, S%kineticavg  , S%kineticerr, S%sgnbinavgs)
+            call djackknife_sgn(S%potentialbinavgs, S%nbin, S%potentialavg, S%potentialerr, S%sgnbinavgs)
+            call djackknife_sgn(S%energybinavgs   , S%nbin, S%energyavg   , S%energyerr, S%sgnbinavgs)
+            call djackknife_sgn(S%antiferrobinavgs, S%nbin, S%antiferroavg, S%antiferroerr, S%sgnbinavgs)
+            call djackknife_sgn(S%chemicalbinavgs , S%nbin, S%chemicalavg , S%chemicalerr, S%sgnbinavgs)
         endsubroutine dostatistics
 
 endmodule measurements_mod
