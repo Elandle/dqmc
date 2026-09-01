@@ -237,6 +237,7 @@ module simulate_mod
 
             open(newunit=S%ounit, file=S%outfilename, action="write", status="replace")
             write(S%ounit, "(a, a)")          "Summary     = ", S%summary
+            write(S%ounit, "(a, i0)")         "seed        = ", S%seed
             write(S%ounit, "(a, i10)")        "N           = ", S%N
             write(S%ounit, "(a, i10)")        "L           = ", S%L
             write(S%ounit, "(a, f17.8)")      "dtau        = ", S%dtau
