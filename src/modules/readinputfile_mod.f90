@@ -15,6 +15,7 @@
 !! `call printparams(param_values, ounit)`
 module readinputfile_mod
     use stduse
+    use utilities
     implicit none
     !
     ! Basic usage:
@@ -53,6 +54,7 @@ module readinputfile_mod
         character(len=:), allocatable :: debfilename !< File name to print debugging information (if in debug mode) into.
         character(len=:), allocatable :: bipfilename
         character(len=:), allocatable :: summary
+        integer                       :: seed
     endtype parameter_values
 
     !> \brief Tracks whether or not a value has set for each parameter.
@@ -78,6 +80,7 @@ module readinputfile_mod
         logical :: debfilename = .false.   !< `.true.` if `debfilename` is set. `.false.` if not.
         logical :: bipfilename = .false.
         logical :: summary     = .false.
+        logical :: seed        = .false.
         endtype parameter_set
 
     contains
@@ -295,6 +298,9 @@ module readinputfile_mod
                 case("summary")
                     param_values%summary     = right
                     param_set   %summary     = .true.
+                case("seed")
+                    read(unit=right, fmt="(i20)") param_values%seed
+                    param_set%seed = .true.
             endselect
         endsubroutine asnparam
 
@@ -310,6 +316,7 @@ module readinputfile_mod
             write(unit=ounit, fmt="(a20, i20)")    "nmeassweep = " , param_values%nmeassweep
             write(unit=ounit, fmt="(a20, i20)")    "nskip = "      , param_values%nskip
             write(unit=ounit, fmt="(a20, i20)")    "nequil = "     , param_values%nequil
+            write(unit=ounit, fmt="(a20, i20)")    "seed = "       , param_values%seed
             write(unit=ounit, fmt="(a20, f20.10)") "dtau = "       , param_values%dtau
             write(unit=ounit, fmt="(a20, f20.10)") "U = "          , param_values%U
             write(unit=ounit, fmt="(a20, f20.10)") "mu = "         , param_values%mu
@@ -411,10 +418,14 @@ module readinputfile_mod
             if (.not. param_set%bipfilename) then
                 write(unit=ounit, fmt="(a)") "Warning: bipfilename not set. Simulation cannot run unless assigned."
             endif
-            if (.not.param_set%summary) then
+            if (.not. param_set%summary) then
                 write(unit=ounit, fmt="(a)") "Warning: summary not set. Setting to default value."
                 param_values%summary = summary_default
                 param_set%summary = .true.
+            endif
+            if (.not. param_set%seed) then
+                call rand_seed(param_values%seed)
+                write(unit=ounit, fmt="(a, i0, a)") "Warning: seed not set. Setting to random value: ", param_values%seed, "."
             endif
         endsubroutine asndefaults
 

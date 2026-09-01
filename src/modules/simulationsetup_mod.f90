@@ -15,6 +15,7 @@
     !! testing intends to be developed.
 module simulationsetup_mod
     use stduse
+    use utilities
     use readinputfile_mod
     use checkerboard_mod
     use convenientla_mod
@@ -56,6 +57,7 @@ module simulationsetup_mod
         integer :: ntotal     !< Total number of sweeps performed (`nequil + (nmeassweep - 1) * nskip + nmeassweep`)
         integer :: nequil     !< How many sweeps to equilibriate/warmup.
         integer :: binsize    !< How many measurements fit in each bin (`nmeassweep / nbin`)
+        integer :: seed
 
         real(dp) :: dtau      !< Trotterization parameter \f$\Delta\tau\f$.
         real(dp) :: beta      !< Inverse temperature \f$\beta = 1/T\f$.
@@ -233,7 +235,7 @@ module simulationsetup_mod
 
         subroutine setup_simulation(S          , N          , L          , nstab, north, nbin,  &
                                     nmeassweep , nskip      , nequil     , dtau , U    , mu  ,  &
-                                    ckbfilename, outfilename, debfilename, bipfilename, summary)
+                                    ckbfilename, outfilename, debfilename, bipfilename, summary, seed)
             !
             ! Main way of setting up a simulation datatype S for use in simulation.
             ! After calling setup_simulation, simulate(S) (from simulate_mod) should immediately
@@ -256,6 +258,7 @@ module simulationsetup_mod
             character(len=*)  , intent(in)    :: debfilename
             character(len=*)  , intent(in)    :: bipfilename
             character(len=*)  , intent(in)    :: summary
+            integer           , intent(in)    :: seed
 
             integer :: i, j, m, bipartfile, label
             integer :: biplabels(N)
@@ -421,9 +424,8 @@ module simulationsetup_mod
             call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
             call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
 
-            ! Makes the random number generator give the same results every time
-            ! TODO: implement seed
-            call random_init(.true., .true.)
+            S%seed = seed
+            call set_seed(S%seed)
 
 
 
@@ -468,6 +470,7 @@ module simulationsetup_mod
                                 param_values%outfilename, &
                                 param_values%debfilename, &
                                 param_values%bipfilename, &
-                                param_values%summary)
+                                param_values%summary,     &
+                                param_values%seed)
         endsubroutine setup_simulation_input
 endmodule simulationsetup_mod
