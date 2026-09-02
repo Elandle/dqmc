@@ -79,6 +79,11 @@ module simulationsetup_mod
         character(len=:), allocatable    :: ckbfilename !< File name of checkerboard file to read in.
         integer               :: ckbiounit   !< Input/output unit for the `ckbfilename` file.
 
+        character(len=:), allocatable :: ckbupfilename
+        integer :: ckbupiounit
+        character(len=:), allocatable :: ckbdnfilename
+        integer :: ckbdniounit
+
         character(len=:), allocatable    :: outfilename !< File name of output file.
         integer               :: ounit       !< Input/output unit for the `outfilename` file.
 
@@ -88,6 +93,8 @@ module simulationsetup_mod
         character(len=:), allocatable :: bipfilename
 
         real(dp), allocatable :: T(:, :)     !< Hopping matrix \f$T\f$ (\f$N x N\f$). \f$T(i, j) = \f$ hopping value from site \f$j\f$ to site \f$i\f$.
+        real(dp), allocatable :: Tup(:, :)
+        real(dp), allocatable :: Tdn(:, :)
         integer , allocatable :: h(:, :)     !< Hubbard Stratonovich field \f$h\f$ (\f$N x L\f$). Takes only the values \f$1\f$ and \f$-1\f$. \f$h(i, l)\f$ is the value of the \f$h\f$ at site \f$i\f$ at timeslice \f$l\f$. Flipping the spin at \f$i, l\f$ means to set \f$h(i, l) = -h(i, l)\f$.
         real(dp), allocatable :: Gup(:, :)   !< Up spin equal time Green's function \f$G_\uparrow\f$ (\f$N X N\f$).
         real(dp), allocatable :: Gdn(:, :)   !< Down spin equal time Green's function \fG_\downarrow$ (\f$N x N\f$).
@@ -220,6 +227,13 @@ module simulationsetup_mod
         type(checkerboard)    :: ckb         ! Checkerboard (for multiplication by exp(dtau * T))
         type(checkerboard)    :: ckbinv      ! Inverse checkerboard (for multiplication by exp(-dtau * T) = inv(exp(dtau * T))
 
+        type(checkerboard) :: ckbup
+        type(checkerboard) :: ckbupinv
+
+        type(checkerboard) :: ckbdn
+        type(checkerboard) :: ckbdninv
+
+
         ! Used only when using bmultexact_mod instead of bmult_mod.
         ! That is, when B matrices are multiplied by using the exact matrix exponential instead
         ! of checkerboard method
@@ -235,7 +249,7 @@ module simulationsetup_mod
 
         subroutine setup_simulation(S          , N          , L          , nstab, north, nbin,  &
                                     nmeassweep , nskip      , nequil     , dtau , U    , mu  ,  &
-                                    ckbfilename, outfilename, debfilename, bipfilename, summary, seed)
+                                    ckbupfilename, ckbdnfilename, outfilename, debfilename, bipfilename, summary, seed)
             !
             ! Main way of setting up a simulation datatype S for use in simulation.
             ! After calling setup_simulation, simulate(S) (from simulate_mod) should immediately
@@ -253,7 +267,8 @@ module simulationsetup_mod
             real(dp)          , intent(in)    :: dtau
             real(dp)          , intent(in)    :: U
             real(dp)          , intent(in)    :: mu
-            character(len=*)  , intent(in)    :: ckbfilename
+            character(len=*)  , intent(in)    :: ckbupfilename
+            character(len=*)  , intent(in)    :: ckbdnfilename
             character(len=*)  , intent(in)    :: outfilename
             character(len=*)  , intent(in)    :: debfilename
             character(len=*)  , intent(in)    :: bipfilename
@@ -304,7 +319,8 @@ module simulationsetup_mod
             S%aldmu    = S%alpha * exp(dtau * mu)
             S%aldmuinv = 1 / S%aldmu
 
-            S%ckbfilename = ckbfilename
+            S%ckbupfilename = ckbupfilename
+            S%ckbdnfilename = ckbdnfilename
             S%outfilename = outfilename
             S%debfilename = debfilename
             S%summary     = summary
@@ -421,21 +437,27 @@ module simulationsetup_mod
                 enddo
             enddo
 
-            call read_ckb(S%ckb   , ckbfilename, S%ckbiounit,  dtau)
-            call read_ckb(S%ckbinv, ckbfilename, S%ckbiounit, -dtau)
+            call read_ckb(S%ckbup   , ckbupfilename, S%ckbupiounit,  dtau)
+            call read_ckb(S%ckbupinv, ckbupfilename, S%ckbupiounit, -dtau)
+
+            call read_ckb(S%ckbdn   , ckbdnfilename, S%ckbdniounit,  dtau)
+            call read_ckb(S%ckbdninv, ckbdnfilename, S%ckbdniounit, -dtau)
 
             S%seed = seed
             call set_seed(S%seed)
 
 
 
-            allocate(S%T(N, N))
-            allocate(S%expT(N, N))
-            allocate(S%expTinv(N, N))
+            ! allocate(S%T(N, N))
+            allocate(S%Tup(N, N))
+            allocate(S%Tdn(N, N))
+            ! allocate(S%expT(N, N))
+            ! allocate(S%expTinv(N, N))
 
-            call read_ckbT(S%T, N, ckbfilename, S%ckbiounit, 1.0_dp)
-            call expm(S%T, S%expT, S%dtau)
-            call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
+            call read_ckbT(S%Tup, N, ckbupfilename, S%ckbupiounit, 1.0_dp)
+            call read_ckbT(S%Tdn, N, ckbdnfilename, S%ckbdniounit, 1.0_dp)
+            ! call expm(S%T, S%expT, S%dtau)
+            ! call expm(S%T, S%expTinv, -1.0_dp*S%dtau)
 
             S%upsgn = 1
             S%dnsgn = 1
@@ -466,7 +488,8 @@ module simulationsetup_mod
                                 param_values%dtau,        &
                                 param_values%U,           &
                                 param_values%mu,          &
-                                param_values%ckbfilename, &
+                                param_values%ckbupfilename, &
+                                param_values%ckbdnfilename, &
                                 param_values%outfilename, &
                                 param_values%debfilename, &
                                 param_values%bipfilename, &

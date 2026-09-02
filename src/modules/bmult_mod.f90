@@ -53,13 +53,13 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            ! Todo: check this works as expected
-            ! call right_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
-            ! call right_ckbmult(S%ckb, A, S%N, S%ckbwork)
-
-            call right_diagmult(A, exp(sigma * S%alpha * S%h(:, l)), S%N)
-            call right_ckbmult(S%ckb, A, S%N, S%ckbwork)
-            A = exp(S%dtau * S%mu) * A
+            if (sigma .eq. 1) then
+                call right_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
+                call right_ckbmult(S%ckbup, A, S%N, S%ckbwork)
+            elseif (sigma .eq. -1) then
+                call right_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
+                call right_ckbmult(S%ckbdn, A, S%N, S%ckbwork)
+            endif
         endsubroutine right_Bmult
 
         !> \brief Updates \f$A = B_\sigma(l)A\f$ using the checkerboard method.
@@ -79,13 +79,13 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            ! Todo: check this works as expected
-            ! call left_ckbmult(S%ckb, A, S%N, S%ckbwork)
-            ! call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
-
-            call left_ckbmult(S%ckb, A, S%N, S%ckbwork)
-            call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l)), S%N)
-            A = exp(S%dtau * S%mu) * A
+            if (sigma .eq. 1) then
+                call left_ckbmult(S%ckbup, A, S%N, S%ckbwork)
+                call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
+            elseif (sigma .eq. -1) then
+                call left_ckbmult(S%ckbdn, A, S%N, S%ckbwork)
+                call left_diagmult(A, exp(sigma * S%alpha * S%h(:, l) + S%dtau * S%mu), S%N)
+            endif
         endsubroutine left_Bmult
 
         !> \brief Updates \f$A = AB_\sigma(l)^{-1}\f$ using the checkerboard method.
@@ -115,12 +115,13 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            ! call right_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
-            ! call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
-
-            call right_ckbinvmult(S%ckbinv, A, S%N, S%ckbwork)
-            call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
-            A = exp(-S%dtau * S%mu) * A
+            if (sigma .eq. 1) then
+                call right_ckbinvmult(S%ckbupinv, A, S%N, S%ckbwork)
+                call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
+            elseif (sigma .eq. -1) then
+                call right_ckbinvmult(S%ckbdninv, A, S%N, S%ckbwork)
+                call right_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
+            endif
         endsubroutine right_Binvmult
 
         subroutine left_Binvmult(S, A, l, sigma)
@@ -148,12 +149,13 @@ module bmult_mod
             integer         , intent(in)    :: sigma
             integer         , intent(in)    :: l
 
-            ! call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
-            ! call left_ckbmult(S%ckbinv, A, S%N, S%ckbwork)
-
-            call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l)), S%N)
-            call left_ckbinvmult(S%ckbinv, A, S%N, S%ckbwork)
-            A = A / exp(S%dtau * S%mu)
+            if (sigma .eq. 1) then
+                call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
+                call left_ckbinvmult(S%ckbupinv, A, S%N, S%ckbwork)
+            elseif (sigma .eq. -1) then
+                call left_diagmult(A, exp(-sigma * S%alpha * S%h(:, l) - S%dtau * S%mu), S%N)
+                call left_ckbinvmult(S%ckbdninv, A, S%N, S%ckbwork)
+            endif
         endsubroutine left_Binvmult
 
         !> Sets \f$A = B_\sigma(l)\f$ using the checkerboard method.

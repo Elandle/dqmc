@@ -55,6 +55,8 @@ module readinputfile_mod
         character(len=:), allocatable :: bipfilename
         character(len=:), allocatable :: summary
         integer                       :: seed
+        character(len=:), allocatable :: ckbupfilename
+        character(len=:), allocatable :: ckbdnfilename
     endtype parameter_values
 
     !> \brief Tracks whether or not a value has set for each parameter.
@@ -81,6 +83,8 @@ module readinputfile_mod
         logical :: bipfilename = .false.
         logical :: summary     = .false.
         logical :: seed        = .false.
+        logical :: ckbupfilename = .false.
+        logical :: ckbdnfilename = .false.
         endtype parameter_set
 
     contains
@@ -301,6 +305,12 @@ module readinputfile_mod
                 case("seed")
                     read(unit=right, fmt="(i20)") param_values%seed
                     param_set%seed = .true.
+                case("ckbupfilename")
+                    param_values%ckbupfilename = right
+                    param_set   %ckbupfilename = .true.
+                case("ckbdnfilename")
+                    param_values%ckbdnfilename = right
+                    param_set   %ckbdnfilename = .true.
             endselect
         endsubroutine asnparam
 
@@ -320,7 +330,21 @@ module readinputfile_mod
             write(unit=ounit, fmt="(a20, f20.10)") "dtau = "       , param_values%dtau
             write(unit=ounit, fmt="(a20, f20.10)") "U = "          , param_values%U
             write(unit=ounit, fmt="(a20, f20.10)") "mu = "         , param_values%mu
-            write(unit=ounit, fmt="(a20, a)")    "ckbfilename = ", param_values%ckbfilename
+            if (allocated(param_values%ckbfilename)) then
+                write(unit=ounit, fmt="(a20, a)") "ckbfilename = ", param_values%ckbfilename
+            else
+                write(unit=ounit, fmt="(a20, a)") "ckbfilename not set."
+            endif
+            if (allocated(param_values%ckbupfilename)) then
+                write(unit=ounit, fmt="(a20, a)") "ckbupfilename = ", param_values%ckbupfilename
+            else
+                write(unit=ounit, fmt="(a20, a)") "ckbupfilename not set."
+            endif
+            if (allocated(param_values%ckbdnfilename)) then
+                write(unit=ounit, fmt="(a20, a)") "ckbdnfilename = ", param_values%ckbdnfilename
+            else
+                write(unit=ounit, fmt="(a20, a)") "ckbdnfilename not set."
+            endif
             write(unit=ounit, fmt="(a20, a)")    "outfilename = ", param_values%outfilename
             write(unit=ounit, fmt="(a20, a)")    "debfilename = ", param_values%debfilename
             write(unit=ounit, fmt="(a20, a)")    "bipfilename = ", param_values%bipfilename
@@ -346,12 +370,12 @@ module readinputfile_mod
             character(len=10) :: summary_default
 
             L_default           = 60
-            nstab_default       = 5
-            north_default       = 5
+            nstab_default       = 6
+            north_default       = 6
             nbin_default        = 32
             nmeassweep_default  = 1000 * nbin_default
-            nskip_default       = 5
-            nequil_default      = 1000
+            nskip_default       = 4
+            nequil_default      = 6000
             dtau_default        = 0.125
             U_default           = 0.0_dp
             mu_default          = 0.0_dp
@@ -359,12 +383,10 @@ module readinputfile_mod
             summary_default     = ""
 
             if (.not. param_set%N) then
-                write(unit=ounit, fmt="(a)") "Warning: N not set. Simulation cannot run unless assigned."
+                stop "N not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%L) then
-                write(unit=ounit, fmt="(a)") "Warning: L not set. Setting to default value."
-                param_values%L = L_default
-                param_set%L    = .true.
+                stop "L not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%nstab) then
                 write(unit=ounit, fmt="(a)") "Warning: nstab not set. Setting to default value."
@@ -377,14 +399,10 @@ module readinputfile_mod
                 param_set%north    = .true.
             endif
             if (.not. param_set%nbin) then
-                write(unit=ounit, fmt="(a)") "Warning: nbin not set. Setting to default value."
-                param_values%nbin = nbin_default
-                param_set%nbin    = .true.
+                stop "nbin not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%nmeassweep) then
-                write(unit=ounit, fmt="(a)") "Warning: nmeassweep not set. Setting to default value."
-                param_values%nmeassweep = nmeassweep_default
-                param_set%nmeassweep    = .true.
+                stop "nmeassweep not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%nskip) then
                 write(unit=ounit, fmt="(a)") "Warning: nskip not set. Setting to default value."
@@ -397,26 +415,32 @@ module readinputfile_mod
                 param_set%nequil    = .true.
             endif
             if (.not. param_set%dtau) then
-                write(unit=ounit, fmt="(a)") "Warning: dtau not set. Setting to default value."
-                param_values%dtau = dtau_default
-                param_set%dtau    = .true.
+                stop "dtau not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%U) then
-                write(unit=ounit, fmt="(a)") "Warning: U not set. Setting to default value."
-                param_values%U = U_default
-                param_set%U    = .true.
+                stop "U not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%mu) then
-                write(unit=ounit, fmt="(a)") "Warning: mu not set. Setting to default value."
-                param_values%mu = mu_default
+                write(unit=ounit, fmt="(a)") "Warning: mu not set. Setting to default value (0.0)."
+                param_values%mu = 0.0_dp
                 param_set%mu    = .true.
             endif
-            if (.not. param_set%ckbfilename) then
-                write(unit=ounit, fmt="(a)") "Warning: ckbfilename not set. Simulation cannot run unless assigned."
-            endif
+
+            associate (both => param_set%ckbfilename, up => param_set%ckbupfilename, dn => param_set%ckbdnfilename)
+                if ((.not. both) .and. (.not. up) .and. (.not. dn)) stop "No ckbfile provided. Simulation cannot run unless assigned."
+                if (both .and. (up .or. dn)) stop "ckbfilename was set and also ckbupfilename or ckbdnfilename. Simulation can only run with either ckbfilename (exclusive) or both ckbupfilename and ckbdnfilename."
+                if (up .neqv. dn) stop "ckbupfilename or ckbdnfilename was specified but not the other. When running with up or dn ckb's, simulation must have both to run."
+                if (both) then
+                    param_values%ckbupfilename = param_values%ckbfilename
+                    param_values%ckbdnfilename = param_values%ckbfilename
+                    param_set%ckbupfilename = .true.
+                    param_set%ckbdnfilename = .true.
+                endif
+            endassociate
+
             ! Currently need bipartite file (todo: remove requirement)
             if (.not. param_set%bipfilename) then
-                write(unit=ounit, fmt="(a)") "Warning: bipfilename not set. Simulation cannot run unless assigned."
+                stop "bipfilename not set. Simulation cannot run unless assigned."
             endif
             if (.not. param_set%summary) then
                 write(unit=ounit, fmt="(a)") "Warning: summary not set. Setting to default value."

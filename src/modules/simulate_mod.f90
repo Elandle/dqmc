@@ -236,32 +236,43 @@ module simulate_mod
             integer     :: i, j
 
             open(newunit=S%ounit, file=S%outfilename, action="write", status="replace")
-            write(S%ounit, "(a, a)")          "Summary     = ", S%summary
-            write(S%ounit, "(a, i0)")         "seed        = ", S%seed
-            write(S%ounit, "(a, i10)")        "N           = ", S%N
-            write(S%ounit, "(a, i10)")        "L           = ", S%L
-            write(S%ounit, "(a, f17.8)")      "dtau        = ", S%dtau
-            write(S%ounit, "(a, f17.8)")      "beta        = ", S%L * S%dtau
-            write(S%ounit, "(a, f17.8)")      "U           = ", S%U
-            write(S%ounit, "(a, f17.8)")      "mu          = ", S%mu
-            write(S%ounit, "(a, i10)")        "nstab       = ", S%nstab
-            write(S%ounit, "(a, i10)")        "north       = ", S%north
-            write(S%ounit, "(a, i10)")        "nbin        = ", S%nbin
-            write(S%ounit, "(a, i10)")        "nmeassweep  = ", S%nmeassweep
-            write(S%ounit, "(a, i10)")        "nskip       = ", S%nskip
-            write(S%ounit, "(a, i10)")        "nequil      = ", S%nequil
-            write(S%ounit, "(a, a)")          "ckbfilename = ", S%ckbfilename
-            write(S%ounit, "(a, a)")          "bipfilename = ", S%bipfilename
-            write(S%ounit, "(a, a)")          "outfilename = ", S%outfilename
-            write(S%ounit, "(a, a)")          "debfilename = ", S%debfilename
-            write(S%ounit, "(a)")             "Hopping matrix i j T(i, j) T(j, i) ="
+            write(S%ounit, "(a, a)")          "Summary       = ", S%summary
+            write(S%ounit, "(a, i0)")         "seed          = ", S%seed
+            write(S%ounit, "(a, i10)")        "N             = ", S%N
+            write(S%ounit, "(a, i10)")        "L             = ", S%L
+            write(S%ounit, "(a, f17.8)")      "dtau          = ", S%dtau
+            write(S%ounit, "(a, f17.8)")      "beta          = ", S%L * S%dtau
+            write(S%ounit, "(a, f17.8)")      "U             = ", S%U
+            write(S%ounit, "(a, f17.8)")      "mu            = ", S%mu
+            write(S%ounit, "(a, i10)")        "nstab         = ", S%nstab
+            write(S%ounit, "(a, i10)")        "north         = ", S%north
+            write(S%ounit, "(a, i10)")        "nbin          = ", S%nbin
+            write(S%ounit, "(a, i10)")        "nmeassweep    = ", S%nmeassweep
+            write(S%ounit, "(a, i10)")        "nskip         = ", S%nskip
+            write(S%ounit, "(a, i10)")        "nequil        = ", S%nequil
+            write(S%ounit, "(a, a)")          "ckbupfilename = ", S%ckbupfilename
+            write(S%ounit, "(a, a)")          "ckbdnfilename = ", S%ckbdnfilename
+            write(S%ounit, "(a, a)")          "bipfilename   = ", S%bipfilename
+            write(S%ounit, "(a, a)")          "outfilename   = ", S%outfilename
+            write(S%ounit, "(a, a)")          "debfilename   = ", S%debfilename
+            write(S%ounit, "(a)")             "up hopping matrix i j Tup(i, j) Tup(j, i) ="
             do i = 1, S%N
                 do j = i + 1, S%N
-                    if (abs(S%T(i,j)) > 1.0e-12_dp .or. abs(S%T(j,i)) > 1.0e-12_dp) then
-                        write(S%ounit, "(2i7, 2f17.8)") i, j, S%T(i,j), S%T(j,i)
+                    if (abs(S%Tup(i,j)) > 1.0e-12_dp .or. abs(S%Tup(j,i)) > 1.0e-12_dp) then
+                        write(S%ounit, "(2i7, 2f17.8)") i, j, S%Tup(i,j), S%Tup(j,i)
                     endif
                 enddo
             enddo
+            write(S%ounit, "(a)")             "dn hopping matrix i j Tdn(i, j) Tdn(j, i) ="
+            do i = 1, S%N
+                do j = i + 1, S%N
+                    if (abs(S%Tdn(i,j)) > 1.0e-12_dp .or. abs(S%Tdn(j,i)) > 1.0e-12_dp) then
+                        write(S%ounit, "(2i7, 2f17.8)") i, j, S%Tdn(i,j), S%Tdn(j,i)
+                    endif
+                enddo
+            enddo
+
+
             write(S%ounit, "(a)")             "Bipartite matrix S ="
             do i = 1, S%N
                 do j = 1, S%N

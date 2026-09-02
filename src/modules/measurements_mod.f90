@@ -106,14 +106,14 @@ module measurements_mod
 
             ! CHECKED ONCE TO GIVE SAME RESULT AS DOUBLE FOR LOOP
             ! ENSURE CORRECTNESS
-            ! kinetic = sum(S%T * transpose(S%Gup)) + sum(S%T * transpose(S%Gdn))
+            ! kinetic = sum(S%Tup * transpose(S%Gup)) + sum(S%Tdn * transpose(S%Gdn))
 
-            associate(N => S%N, T => S%T, kineticbin => S%kineticbin, sgn => S%sgn)
+            associate(N => S%N, Tup => S%Tup, kineticbin => S%kineticbin, sgn => S%sgn, Tdn => S%Tdn)
                 kinetic = 0.0_dp
                 do j = 1, N
                     do k = 1, N
-                        kinetic = kinetic - T(j, k) * cdicj(S, j, k,  1) &
-                                          - T(j, k) * cdicj(S, j, k, -1)
+                        kinetic = kinetic - Tup(j, k) * cdicj(S, j, k,  1) &
+                                          - Tdn(j, k) * cdicj(S, j, k, -1)
                     enddo
                 enddo
 
