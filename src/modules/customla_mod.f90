@@ -1,7 +1,6 @@
 module customla_mod
     use stduse
-    use blas_interface
-    use lapack_interface
+    use blas_lapack_interface
     implicit none
 
     contains

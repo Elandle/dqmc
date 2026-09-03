@@ -31,8 +31,8 @@ module statistics_mod
         !! \param[in] n   (`integer`)                Dimension of x
         !! \result    avg (`real(sp)`)               Average value of entries of x
         pure real(sp) function svector_avg(x, n)
-            real(sp), intent(in) :: x(n)
             integer , intent(in) :: n
+            real(sp), intent(in) :: x(n)
 
             svector_avg = sum(x) / n
         endfunction svector_avg
@@ -46,8 +46,8 @@ module statistics_mod
         !! \param[in] n   (`integer`)                Dimension of x
         !! \result    avg (`real(dp)`)               Average value of entries of x
         pure real(dp) function dvector_avg(x, n)
-            real(dp), intent(in) :: x(n)
             integer , intent(in) :: n
+            real(dp), intent(in) :: x(n)
 
             dvector_avg = sum(x) / n
         endfunction dvector_avg
@@ -61,8 +61,8 @@ module statistics_mod
         !! \param[in] n   (`integer`)                   Dimension of x
         !! \result    avg (`complex(sp)`)               Average value of entries of x
         pure complex(sp) function cvector_avg(x, n)
-            complex(sp), intent(in) :: x(n)
             integer    , intent(in) :: n
+            complex(sp), intent(in) :: x(n)
 
             cvector_avg = sum(x) / n
         endfunction cvector_avg
@@ -76,8 +76,9 @@ module statistics_mod
         !! \param[in] n   (`integer`)                   Dimension of x
         !! \result    avg (`complex(dp)`)               Average value of entries of x
         pure complex(dp) function zvector_avg(x, n) 
-            complex(dp), intent(in) :: x(n)
             integer    , intent(in) :: n
+            complex(dp), intent(in) :: x(n)
+            
 
             zvector_avg = sum(x) / n
         endfunction zvector_avg
@@ -119,8 +120,8 @@ module statistics_mod
         !! \param[out] avg  (`real(dp)`)               Variable to hold the computed Jackknife average.
         !! \param[out] err  (`real(dp)`)               Variable to hold the computed Jackknife error.
         pure subroutine djackknife(x, n, avg, err)
-            real(dp), intent(in)  :: x(n)
             integer , intent(in)  :: n
+            real(dp), intent(in)  :: x(n)
             real(dp), intent(out) :: avg, err
 
             avg = vector_avg(x, n)
@@ -129,8 +130,8 @@ module statistics_mod
 
 
         pure subroutine djackknife_sgn(x, n, avg, err, sgn)
-            real(dp), intent(in)  :: x(n)
             integer , intent(in)  :: n
+            real(dp), intent(in)  :: x(n)
             real(dp), intent(out) :: avg, err
             real(dp), intent(in)  :: sgn(n)
 
@@ -184,8 +185,8 @@ module statistics_mod
         !! \param[out] avg  (`complex(dp)`)               Variable to hold the computed Jackknife average.
         !! \param[out] err  (`complex(dp)`)               Variable to hold the computed Jackknife error.
         pure subroutine zjackknife(x, n, avg, err)
-            complex(dp), intent(in)  :: x(n)
             integer    , intent(in)  :: n
+            complex(dp), intent(in)  :: x(n)
             complex(dp), intent(out) :: avg, err
 
             avg = zvector_avg(x, n)

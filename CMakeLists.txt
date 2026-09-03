@@ -7,6 +7,17 @@ set(BUILD_SHARED_LIBS OFF)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     add_compile_options($<$<NOT:$<CONFIG:Debug>>:-flto>)
     add_link_options($<$<NOT:$<CONFIG:Debug>>:-flto>)
+elseif(CMAKE_Fortran_COMPILER_ID STREQUAL "LFortran")
+    add_compile_options(
+        --implicit-interface
+        --legacy-array-sections
+        --mangle-underscore-external
+        $<$<NOT:$<CONFIG:Debug>>:--fast>
+    )
+    add_link_options(
+        -L/opt/gcc-16.2/lib64
+        -lgfortran
+    )
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -23,6 +34,7 @@ if(NOT BLAS_FOUND OR NOT LAPACK_FOUND)
         OPENBLAS_STATIC
         NAMES openblas
         PATHS
+            /usr/local/lib
             /usr/lib/x86_64-linux-gnu
             /usr/lib/x86_64-linux-gnu/openblas-pthread
         NO_DEFAULT_PATH

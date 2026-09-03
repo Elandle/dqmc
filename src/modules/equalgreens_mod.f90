@@ -13,8 +13,7 @@
     !! while bmultexact_mod uses no approximation (but runs much slower).
 module equalgreens_mod
     use stduse
-    use blas_interface
-    use lapack_interface
+    use blas_lapack_interface
     use simulationsetup_mod
     use bmult_mod
     use printing_mod

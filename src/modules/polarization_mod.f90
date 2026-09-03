@@ -1,5 +1,6 @@
 module polarization_mod
     use stduse
+    use blas_lapack_interface
     use simulationsetup_mod
     use equalgreens_mod
     implicit none

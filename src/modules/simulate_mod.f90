@@ -276,9 +276,9 @@ module simulate_mod
             write(S%ounit, "(a)")             "Bipartite matrix S ="
             do i = 1, S%N
                 do j = 1, S%N
-                    write(stdout, "(i4)", advance="no") S%bipartsgn(i, j)
+                    write(S%ounit, "(i4)", advance="no") S%bipartsgn(i, j)
                 enddo
-                write(stdout, "(a)") ""
+                write(S%ounit, "(a)") ""
             enddo
 
             write(S%ounit, "(a)") ""

@@ -2,14 +2,13 @@
 
 add_library(
     dqmc
-    ${CMAKE_CURRENT_SOURCE_DIR}/blas_interface_mod.f90
+    ${CMAKE_CURRENT_SOURCE_DIR}/blas_lapack_interface_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/bmult_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/checkerboard_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/convenientla_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/customla_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/equalgreens_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/expm_mod.f90
-    ${CMAKE_CURRENT_SOURCE_DIR}/lapack_interface_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/measurements_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/metropolisratios_mod.f90
     ${CMAKE_CURRENT_SOURCE_DIR}/stduse.f90

@@ -1,5 +1,6 @@
 module convenientla_mod
     use stduse
+    use blas_lapack_interface
     use customla_mod
     implicit none
 

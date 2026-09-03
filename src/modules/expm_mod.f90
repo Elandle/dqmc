@@ -1,6 +1,7 @@
 !> \brief Contains procedures for exactly computing the matrix exponential.
 module expm_mod
     use stduse
+    use blas_lapack_interface
     implicit none
 
     contains

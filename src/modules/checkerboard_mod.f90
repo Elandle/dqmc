@@ -91,6 +91,7 @@
     !! Or this extraction process can easily be added to the checkerboard method code
 module checkerboard_mod
     use stduse
+    use blas_lapack_interface
     implicit none
 
     !> \brief Stores `ckbcolour`'s for checkerboard multiplication by iterating

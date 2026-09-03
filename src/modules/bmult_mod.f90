@@ -29,6 +29,7 @@
 !! to keep the code simpler this method is being used now.
 module bmult_mod
     use stduse
+    use blas_lapack_interface
     use checkerboard_mod
     use simulationsetup_mod
     use customla_mod
